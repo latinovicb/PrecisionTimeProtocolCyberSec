@@ -5,7 +5,7 @@ import sys
 import os
 from icecream import ic
 from scp import SCPClient
-import ptp_reader, wireguard_start, macsec_start
+import ptp_reader, wireguard_start2, macsec_start2, strongswan_start2
 
 a_path = os.path.dirname(__file__)
 sys.path.append("..")
@@ -28,11 +28,20 @@ def main():
         ssh_slave = MySSHClient(slaves[i], ssh_user, ssh_pass)
         scp_slave = SCPClient(ssh_slave.get_transport())
 
-        # wireguard_start.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        wireguard = wireguard_start2.WireGuardSetup(
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        )
+        # wireguard.do()
 
-        macsec_start.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        macsec = macsec_start2.MacsecSetup(
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        )
+        # macsec.do()
 
-        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        strongswan = strongswan_start2.StrongSwanSetup(
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        )
+        # strongswan.do()
 
 
 class CommandTimeout(Exception):
