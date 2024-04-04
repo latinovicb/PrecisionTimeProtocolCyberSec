@@ -8,6 +8,7 @@ import conn_utils
 class MacsecSetup:
     IFACE_PHY = "eth1"
     IFACE_MACSEC = "macsec0"
+    dst_dir = f"/tmp/{IFACE_MACSEC}"
 
     def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces):
         self.ssh_master = ssh_master
@@ -15,21 +16,22 @@ class MacsecSetup:
         self.ssh_slave = ssh_slave
         self.scp_slave = scp_slave
         self.interfaces = interfaces
+        self.status = "off"
+        self.__change_status()
 
     def do(self):
-        dst_dir = f"/tmp/{self.IFACE_MACSEC}"
         try:
             self._setup_interfaces_keys(
                 self.ssh_master,
                 self.IFACE_MACSEC,
                 self.interfaces,
-                dst_dir,
+                self.dst_dir,
             )
             self._setup_interfaces_keys(
                 self.ssh_slave,
                 self.IFACE_MACSEC,
                 self.interfaces,
-                dst_dir,
+                self.dst_dir,
             )
             self._setup_peers(
                 self.ssh_master,
@@ -37,13 +39,23 @@ class MacsecSetup:
                 self.IFACE_PHY,
                 self.IFACE_MACSEC,
                 self.interfaces,
-                dst_dir,
+                self.dst_dir,
             )
             print("Okay")
         except Exception as e:
-            conn_utils.kill(self.ssh_master, self.IFACE_MACSEC, dst_dir)
-            conn_utils.kill(self.ssh_slave, self.IFACE_MACSEC, dst_dir)
+            self.kill()
             raise e
+
+    def kill(self):
+        self.__change_status()
+        conn_utils.kill(self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
+        conn_utils.kill(self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
+
+    def get_status(self):
+        return self.status
+
+    def __change_status(self):
+        self.status = "on" if self.status == "off" else "off"
 
     def _setup_interfaces_keys(self, ssh, iface, interfaces, dst_dir):
         macsec_set_comms = (
@@ -83,9 +95,8 @@ class MacsecSetup:
             key_slave,
         )
 
-        # Connectivity works -- fix the issue with the method and signal.signal
-        # conn_utils.verify_connectivity(ssh_master, macsec_addr_master)
-        # conn_utils.verify_connectivity(ssh_slave, macsec_addr_slave)
+        conn_utils.verify_connectivity(ssh_master, macsec_addr_master)
+        conn_utils.verify_connectivity(ssh_slave, macsec_addr_slave)
 
     def _get_mac_info(self, ssh, iface, dst_dir):
         iface_info = ssh.run_command(f"ip link show {iface}")

@@ -14,6 +14,8 @@ class StrongSwanSetup:
         self.ssh_slave = ssh_slave
         self.scp_slave = scp_slave
         self.interfaces = interfaces
+        self.status = "off"
+        self.__change_status()
 
     def do(self):
         try:
@@ -37,7 +39,19 @@ class StrongSwanSetup:
             )
 
         except Exception as e:
+            self.kill()
             raise e
+
+    def kill(self):
+        self.__change_status()
+        self.ssh_master.run_command("systemctl stop strongswan")
+        self.ssh_slave.run_command("systemctl stop strongswan")
+
+    def get_status(self):
+        return self.status
+
+    def __change_status(self):
+        self.status = "on" if self.status == "off" else "off"
 
     def _set_conf_file(self, ssh_local, shh_remote, iface, interfaces, ike_key):
         local_addr = interfaces[iface] + ssh_local.get_transport().getpeername()[0][-1]

@@ -22,6 +22,7 @@ def main():
     no_peers = len(masters)
 
     for i in range(no_peers):
+        ### objects
         ssh_master = MySSHClient(masters[i], ssh_user, ssh_pass)
         scp_master = SCPClient(ssh_master.get_transport())
 
@@ -31,17 +32,34 @@ def main():
         wireguard = wireguard_start2.WireGuardSetup(
             ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
         )
-        # wireguard.do()
-
-        macsec = macsec_start2.MacsecSetup(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
-        )
-        # macsec.do()
-
         strongswan = strongswan_start2.StrongSwanSetup(
             ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
         )
-        # strongswan.do()
+        macsec = macsec_start2.MacsecSetup(
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        )
+        ###
+
+        # both sec and measuremnt will accpet args in the future
+
+        wireguard.do()
+        ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        wireguard.kill()
+        assert wireguard.get_status() == "off"
+
+        strongswan.do()
+        ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        strongswan.kill()
+        assert strongswan.get_status() == "off"
+
+        macsec.do()
+        ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        macsec.kill()
+        assert macsec.get_status() == "off"
+
+
+#
+# def sec_set_mes(sec_obj, mes_obj):
 
 
 class CommandTimeout(Exception):
@@ -71,10 +89,11 @@ class MySSHClient(paramiko.SSHClient):
         """
         print(" : ", command)
 
-        signal.signal(signal.SIGALRM, self.__handler)
-        signal.alarm(5)
+        timeout_t = str(10)  # all single execution commands have specific timeout
         try:
-            stdin, stdout, stderr = self.exec_command(command)
+            stdin, stdout, stderr = self.exec_command(
+                "timeout " + timeout_t + " " + command
+            )
             self.__error_check(stderr)
             return stdout.read().decode().strip()
         except CommandTimeout:

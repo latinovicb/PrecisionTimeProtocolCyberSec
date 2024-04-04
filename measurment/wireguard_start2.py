@@ -8,6 +8,7 @@ import conn_utils
 class WireGuardSetup:
     IFACE_PHY = "eth1"
     IFACE_WG = "wg0"
+    dst_dir = f"/tmp/{IFACE_WG}" # just a tmp dir for purpose of creating keys
 
     def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces):
         self.ssh_master = ssh_master
@@ -15,15 +16,16 @@ class WireGuardSetup:
         self.ssh_slave = ssh_slave
         self.scp_slave = scp_slave
         self.interfaces = interfaces
+        self.status = "off"
+        self.__change_status()
 
     def do(self):
-        dst_dir = f"/tmp/{self.IFACE_WG}"
         try:
             self._setup_interfaces_keys(
-                self.ssh_master, self.IFACE_WG, self.interfaces, dst_dir
+                self.ssh_master, self.IFACE_WG, self.interfaces, self.dst_dir
             )
             self._setup_interfaces_keys(
-                self.ssh_slave, self.IFACE_WG, self.interfaces, dst_dir
+                self.ssh_slave, self.IFACE_WG, self.interfaces, self.dst_dir
             )
             self._setup_peers(
                 self.ssh_master,
@@ -34,9 +36,19 @@ class WireGuardSetup:
             )
             print("Okay")
         except Exception as e:
-            conn_utils.kill(self.ssh_master, self.IFACE_WG, dst_dir)
-            conn_utils.kill(self.ssh_slave, self.IFACE_WG, dst_dir)
+            self.kill()
             raise e
+
+    def kill(self):
+        self.__change_status()
+        conn_utils.kill(self.ssh_master, self.IFACE_WG, self.dst_dir)
+        conn_utils.kill(self.ssh_slave, self.IFACE_WG, self.dst_dir)
+
+    def get_status(self):
+        return self.status
+
+    def __change_status(self):
+        self.status = "on" if self.status == "off" else "off"
 
     def _setup_interfaces_keys(self, ssh, iface, interfaces, dst_dir):
         wg_set_comms = (

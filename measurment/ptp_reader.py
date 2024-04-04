@@ -14,14 +14,21 @@ def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
     """
 
     ### Tmp vars -- should be taken as an arguments from main
-    timer = 360
+    timer = 60
     ptp_cmd_master = "ptp4l -m -i eth1 -l 7 -f settings.cfg"  # extra logging info for master so that generators wouldn't bug -- maybe fix generators later
     ptp_cmd_slave = "ptp4l -m -s -i eth1 -f settings.cfg"
-    buff_size = 30
+    buff_size = 10
     title = "no enc."
     location = "/tmp"
     save_period = 1
     ###
+    print(
+        "Runninge ptp reader with following info: ",
+        timer,
+        ptp_cmd_master,
+        ptp_cmd_slave,
+        buff_size,
+    )
 
     count = 0
     first_indx = 0
@@ -31,7 +38,6 @@ def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
     )
 
     for data in __run_sync(ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer):
-
         # Fill by buff to ease the load
         if count == buff_size:
             myPlt.update(df)
@@ -43,7 +49,9 @@ def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
 
         # This is probably not very resource efficient
         data = pd.Series(data, name=first_indx + count)
-        df = df.append(data)
+        print(data)
+        df = df._append(data)
+        # df = pd.concat([df, data], axis=0)
         count += 1
         print(df)
 
@@ -87,7 +95,6 @@ def __run_sync(ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer):
         log_time = 0
 
         if data:
-
             # log time is always bigger by one second
             if log_time != 0:
                 assert data["ptp4l_runtime"] == log_time + 1
