@@ -6,6 +6,7 @@ import os
 from icecream import ic
 from scp import SCPClient
 import ptp_reader, wireguard_start2, macsec_start2, strongswan_start2
+import make_packages, networking
 
 a_path = os.path.dirname(__file__)
 sys.path.append("..")
@@ -40,6 +41,8 @@ def main():
         )
         ###
 
+        # setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
+
         # both sec and measuremnt will accpet args in the future
 
         wireguard.do()
@@ -60,6 +63,13 @@ def main():
 
 #
 # def sec_set_mes(sec_obj, mes_obj):
+
+
+def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces):
+    make_packages.do(ssh_master, scp_master)
+    make_packages.do(ssh_slave, scp_master)
+    networking.do(ssh_master, scp_master, interfaces)
+    networking.do(ssh_slave, scp_slave, interfaces)
 
 
 class CommandTimeout(Exception):
