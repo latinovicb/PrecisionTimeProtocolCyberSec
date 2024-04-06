@@ -3,7 +3,6 @@ import signal
 import time
 import sys
 import os
-from icecream import ic
 from scp import SCPClient
 import ptp_reader, wireguard_start2, macsec_start2, strongswan_start2
 import make_packages, networking
@@ -46,17 +45,17 @@ def main():
         # both sec and measuremnt will accpet args in the future
 
         wireguard.do()
-        ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
         wireguard.kill()
         assert wireguard.get_status() == "off"
 
         strongswan.do()
-        ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
         strongswan.kill()
         assert strongswan.get_status() == "off"
 
         macsec.do()
-        ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
+        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
         macsec.kill()
         assert macsec.get_status() == "off"
 
@@ -82,7 +81,12 @@ class MySSHClient(paramiko.SSHClient):
         self.server = server
         self.load_system_host_keys()
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
         self.connect(server, username=user, password=passw)
+        # try:
+        # except paramiko.ssh_exception.BadHostKeyException as e:
+        #     # assuming that .ssh is in ~
+        #     os.system(f"ssh-keygen -f '/home/bl/.ssh/known_hosts' -R '{server}'")
 
     def __error_check(self, stderr):
         errors = stderr.read().decode().strip()
@@ -99,7 +103,7 @@ class MySSHClient(paramiko.SSHClient):
         """
         print(" : ", command)
 
-        timeout_t = str(10)  # all single execution commands have specific timeout
+        timeout_t = str(3)  # all single execution commands have specific timeout
         try:
             stdin, stdout, stderr = self.exec_command(
                 "timeout " + timeout_t + " " + command

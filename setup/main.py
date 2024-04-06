@@ -18,7 +18,6 @@ def main():
 
         # build_packages.do(ssh, scp)
         networking.do(ssh, scp, ptp_sec_cons)
-        wg_keys.do(ssh, scp, ptp_sec_cons)
 
 
 def createSSHClient(server, user, passw):
