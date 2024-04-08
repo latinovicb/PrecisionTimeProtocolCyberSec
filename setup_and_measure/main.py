@@ -9,7 +9,7 @@ import make_packages, networking
 
 a_path = os.path.dirname(__file__)
 sys.path.append("..")
-from Thesis_scripts.vardata import ssh_conns, ptp_sec_cons
+from Thesis_scripts.vardata import ssh_conns, ptp_sec_cons, ptp_sec_cmds
 
 ssh_user = "root"
 ssh_pass = ""
@@ -42,22 +42,30 @@ def main():
 
         # setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
-        # both sec and measuremnt will accpet args in the future
+        def read_ptp(mode):
+            ptp_reader.do(
+                ssh_master,
+                scp_master,
+                ssh_slave,
+                scp_slave,
+                ptp_sec_cmds,
+                mode=mode,
+            )
 
-        wireguard.do()
-        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
-        wireguard.kill()
-        assert wireguard.get_status() == "off"
+        read_ptp("no_enc_multicast")
+        read_ptp("no_enc_unicast")
 
-        strongswan.do()
-        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
-        strongswan.kill()
-        assert strongswan.get_status() == "off"
+        # wireguard.do()
+        # wireguard.kill()
+        # assert wireguard.get_status() == "off"
 
-        macsec.do()
-        # ptp_reader.do(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons)
-        macsec.kill()
-        assert macsec.get_status() == "off"
+        # strongswan.do()
+        # strongswan.kill()
+        # assert strongswan.get_status() == "off"
+
+        # macsec.do()
+        # macsec.kill()
+        # assert macsec.get_status() == "off"
 
 
 #

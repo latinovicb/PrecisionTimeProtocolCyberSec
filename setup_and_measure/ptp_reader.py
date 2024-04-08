@@ -3,12 +3,18 @@ import re
 import matplotlib
 import matplotlib.pyplot as plt
 
+# TODO: add functions for statistics creation
+# TODO: additionally write plot data to csv -
+# so they could be compared between each other
+
 
 class PlotSaver:
     def __init__(self, title, labels_units, location, save_period):
         self.location = location
+        self.title = title
         self.labels_units = labels_units
         self.save_period = save_period
+        self.csv_mode = "x"
         self.fig, self.axs = plt.subplots(3, figsize=(16, 9), dpi=200)
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
         # plt.rcParams["figure.figsize"] = [12.04, 7.68]
@@ -25,6 +31,7 @@ class PlotSaver:
 
         # self.fig.canvas.draw()
         self.__save_fig()
+        self.__save_csv(data)
 
     def __plot_next(self, ax, name, unit, data):
         ax.title.set_text(name)
@@ -32,40 +39,58 @@ class PlotSaver:
         ax.plot(data[name], label=name, linestyle=(0, (1, 10)), color="blue")
 
     def __save_fig(self):
-        name = f"{self.location}/ptp_data"
+        name = f"{self.location}/ptp_data_{self.title}"
         print(f"Figure updated/saved to {name}")
         plt.savefig(name)
 
+    def __save_csv(self, data):
+        name = f"{self.location}/csv_data_{self.title}.csv"
+        try:
+            data.to_csv(name, mode=self.csv_mode, header=False)
+        except FileExistsError as e:
+            print(e, f" ... rewriting file {name}")
+            data.to_csv(name, mode="w")
+            self.csv_mode = "a"
 
-def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
+
+def do(ssh_master, scp_master, ssh_slave, scp_slave, cmds, mode):
     """
     Read lines from ptp4l output
     """
     ### Perm vars -- will not likely change
     labels_units = {
-        "ptp4l_runtime": "s",
-        "master_offset": "ns",
-        "servo_freq": "ppb",
-        "path_delay": "ns",
+        "ptp4l_runtime": "time [s]",
+        "master_offset": "time [ns]",
+        "servo_freq": "freq [ppb]",
+        "path_delay": "time [ns]",
     }  # ptp4l_runtime used just for log consitecny verification
     pattern = r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
     ###
 
+    title = mode
+    ptp_cmd_master = cmds[mode]["master"]
+    ptp_cmd_slave = cmds[mode]["slave"]
+
     ### Tmp vars -- should be taken as an arguments from main
     timer = 60
-    ptp_cmd_master = "ptp4l -m -i eth1 -l 7 -f settings.cfg"  # extra logging info for master so that generators wouldn't bug -- maybe fix generators later
-    ptp_cmd_slave = "ptp4l -m -s -i eth1 -f settings.cfg"
     buff_size = 10
-    title = "no enc."
     location = "/tmp"
     save_period = 1
     ###
     print(
-        "Running ptp reader with the following info: ",
-        timer,
+        "Running ptp reader with the following info: \n",
+        "master: ",
         ptp_cmd_master,
+        "\n",
+        "slave: ",
         ptp_cmd_slave,
+        "\n",
+        "plot buff size: ",
         buff_size,
+        "\n",
+        "timer: ",
+        timer,
+        "\n",
         " ... initializing",
     )
 
