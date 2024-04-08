@@ -3,15 +3,53 @@ import re
 import matplotlib
 import matplotlib.pyplot as plt
 
-# Find all matches in the line
-pattern = r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
-labels = ["ptp4l_runtime", "master_offset", "s2_freq", "path_delay"]
+
+class PlotSaver:
+    def __init__(self, title, labels_units, location, save_period):
+        self.location = location
+        self.labels_units = labels_units
+        self.save_period = save_period
+        self.fig, self.axs = plt.subplots(3, figsize=(16, 9), dpi=200)
+        self.fig.suptitle(f"ptp4l parsed data -- {title}")
+        # plt.rcParams["figure.figsize"] = [12.04, 7.68]
+        plt.ion()
+
+    def update(self, data):
+        for i in range(len(self.labels_units.keys()) - 1):
+            self.__plot_next(
+                self.axs[i],
+                list(self.labels_units.keys())[i + 1],
+                list(self.labels_units.values())[i + 1],
+                data,
+            )
+
+        # self.fig.canvas.draw()
+        self.__save_fig()
+
+    def __plot_next(self, ax, name, unit, data):
+        ax.title.set_text(name)
+        ax.set(ylabel=unit)
+        ax.plot(data[name], label=name, linestyle=(0, (1, 10)), color="blue")
+
+    def __save_fig(self):
+        name = f"{self.location}/ptp_data"
+        print(f"Figure updated/saved to {name}")
+        plt.savefig(name)
 
 
 def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
     """
     Read lines from ptp4l output
     """
+    ### Perm vars -- will not likely change
+    labels_units = {
+        "ptp4l_runtime": "s",
+        "master_offset": "ns",
+        "servo_freq": "ppb",
+        "path_delay": "ns",
+    }  # ptp4l_runtime used just for log consitecny verification
+    pattern = r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
+    ###
 
     ### Tmp vars -- should be taken as an arguments from main
     timer = 60
@@ -23,23 +61,28 @@ def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
     save_period = 1
     ###
     print(
-        "Runninge ptp reader with following info: ",
+        "Running ptp reader with the following info: ",
         timer,
         ptp_cmd_master,
         ptp_cmd_slave,
         buff_size,
+        " ... initializing",
     )
 
     count = 0
     first_indx = 0
-    myPlt = PlotSaver(title, location, save_period)
+    labels = list(labels_units.keys())
+    myPlt = PlotSaver(title, labels_units, location, save_period)
     df = pd.DataFrame(
         columns=labels[1:],
     )
 
-    for data in __run_sync(ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer):
+    for data in __run_sync(
+        ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer, labels, pattern
+    ):
         # Fill by buff to ease the load
         if count == buff_size:
+            print("Passing data to plotter\n", df)
             myPlt.update(df)
             first_indx += count
             df = pd.DataFrame(
@@ -47,41 +90,16 @@ def do(ssh_master, scp_master, ssh_slave, scp_slave, test_ifac):
             )
             count = 0
 
-        # This is probably not very resource efficient
-        data = pd.Series(data, name=first_indx + count)
-        print(data)
-        df = df._append(data)
-        # df = pd.concat([df, data], axis=0)
+        data = pd.Series(
+            data, name=first_indx + count
+        )  # NOTE: probably not vert resource efficient
+        df = df._append(data)  # FIXME: should be changed to concat
         count += 1
-        print(df)
 
 
-class PlotSaver:
-    def __init__(self, title, location, save_period):
-        self.location = location
-        self.save_period = save_period
-        self.fig, self.axs = plt.subplots(2, 2, figsize=(16, 9), dpi=200)
-        self.fig.suptitle(f"ptp4l parsed data -- {title}")
-        # plt.rcParams["figure.figsize"] = [12.04, 7.68]
-        plt.ion()
-
-    def update(self, data):
-        print(data)
-        self.axs[0, 0].plot(data["master_offset"], label="master_offset")
-        self.axs[0, 1].plot(data["s2_freq"], label="s2_freq")
-        self.axs[1, 0].plot(data["path_delay"], label="path_delay")
-
-        # for ax in self.axs.flatten():
-        #     ax.legend()
-
-        # self.fig.canvas.draw()
-        self.__save_fig()
-
-    def __save_fig(self):
-        plt.savefig(f"{self.location}/ptp_data")
-
-
-def __run_sync(ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer):
+def __run_sync(
+    ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer, labels, pattern
+):
     """
     Run sync between server and master and return numbers which were parsed line by line
     """
@@ -91,7 +109,7 @@ def __run_sync(ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer):
     ):
         # print(line_m)
         # print(line_s)
-        data = __parse_lines(line_s, pattern)
+        data = __parse_lines(line_s, pattern, labels)
         log_time = 0
 
         if data:
@@ -104,7 +122,7 @@ def __run_sync(ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer):
             yield data
 
 
-def __parse_lines(line, pattern):
+def __parse_lines(line, pattern, labels):
     """
     Read floats from line and return parsed dict
     """
@@ -120,8 +138,8 @@ def __parse_lines(line, pattern):
         else:
             nums.append(float(matches[i]))
 
-    # Expected 4 values (mayber add more)
-    if len(nums) == 4:
+    # Expected same number of values as existing labels
+    if len(nums) == len(labels):
         for i in range(len(labels)):
             tmp_dict[labels[i]] = nums[i]
 
