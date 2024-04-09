@@ -1,6 +1,9 @@
 import pandas as pd
-import re
 import matplotlib.pyplot as plt
+import re
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)  # FIXME: df._append below
+
 
 # TODO: add functions for statistics creation
 # TODO: additionally write plot data to csv -
@@ -37,12 +40,13 @@ class PlotSaver:
         ax.plot(data[name], label=name, linestyle=(0, (1, 10)), color="blue")
 
     def __save_fig(self):
-        name = f"{self.location}/ptp_data_{self.title}"
+        name = f"{self.location}/{self.title}"
         print(f"Figure updated/saved to {name}")
         plt.savefig(name)
 
     def __save_csv(self, data):
-        name = f"{self.location}/csv_data_{self.title}.csv"
+        print(self.csv_mode)
+        name = f"{self.location}/{self.title}.csv"
         try:
             data.to_csv(name, mode=self.csv_mode, header=False)
         except FileExistsError as e:
@@ -52,29 +56,20 @@ class PlotSaver:
 
 
 class PtpReader():
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, cmds, log_config):
+    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, cmds, log_config, label_pattern):
         self.ssh_master = ssh_master
         self.scp_master = scp_master
         self.ssh_slave = ssh_slave
         self.scp_slave = scp_slave
         self.cmds = cmds
 
-        # Perm vars -- will not likely change
-        self.labels_units = {
-            "ptp4l_runtime": "time [s]",
-            "master_offset": "ns",
-            "servo_freq": "ppb",
-            "path_delay": "ns",
-        }  # ptp4l_runtime used just for log consitecny verification
-        self.pattern = r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
+        self.labels_units = label_pattern.log_data
+        self.pattern = label_pattern.re_pattern
         self.labels = list(self.labels_units.keys())
-        ###
 
-        # Tmp vars -- should be taken as an arguments from main
-        self.timer = log_config['timer']
-        self.buff_size = log_config['buff_size']
-        self.location = log_config['location']
-        ###
+        self.timer = log_config.time
+        self.buff_size = log_config.buff_size
+        self.location = log_config.location
 
     def do(self, mode):
         """
@@ -115,7 +110,7 @@ class PtpReader():
         ):
             # Fill by buff to ease the load
             if count == self.buff_size:
-                print("Passing data to plotter\n", df)
+                # print("Passing data to plotter\n", df)
                 myPlt.update(df)
                 first_indx += count
                 df = pd.DataFrame(
@@ -143,7 +138,8 @@ class PtpReader():
             log_time = 0
 
             if data:
-                # log time is always bigger by one second
+                # log time is always bigger by one
+                # TODO: maybe make dynamic
                 if log_time != 0:
                     assert data["ptp4l_runtime"] == log_time + 1
 

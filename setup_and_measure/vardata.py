@@ -1,8 +1,44 @@
 from dataclasses import dataclass
 
+
+@dataclass
+class SSHConn:
+    addr: str
+    user: str
+    passw: str
+    dir: str
+
+
+@dataclass
+class PlotLogConf:
+    time: int  # in s
+    buff_size: int  # after how many messages new image is generated (by default 1 seconds - 1 message)
+    location: str  # location on where the plots and plots and data will be saved on this pc
+
+
+@dataclass
+class Ptp4lDataLogs:
+    log_data: dict  # log data provided by ptp4l
+    re_pattern: int  # regex pattern created specifically to match the values from above specified data
+
+
+# Section 1
 PHY_INTERFACE = " eth1 "
 WG_INTERFACE = " wg0 "
 MACSEC_INTERFACE = " macsec0 "
+
+
+# multiple pairs of masters/slaves can be done
+ssh_conns = {
+    "master": [SSHConn("192.168.88.101","root","","tmp"),],
+    "slave": [SSHConn("192.168.88.102","root","","tmp"),],
+}
+
+ptp_log_config = PlotLogConf(60,30,"/tmp/ptp_reads")
+
+# endSection
+
+# Section 2
 HW = " -H "
 SW = " -S "
 E2E = " -E "
@@ -13,30 +49,7 @@ L3 = " -4 "  # ipv4 only
 HW = " -H "
 SW = " -S "
 SLAVE = " -s "
-BASE = (
-    "ptp4l -m -i "  # this will be used always -- the following argument is interface
-)
-
-
-@dataclass
-class SSHConn:
-    addr: str
-    user: str
-    passw: str
-    dir: str
-
-
-# multiple paris of masters -- slaves can be done
-ssh_conns = {
-    "master": [SSHConn("192.168.88.101","root","","tmp"),],
-    "slave": [SSHConn("192.168.88.102","root","","tmp"),],
-}
-
-ptp_log_config = {
-    'timer': 300,  # in s
-    'buff_size': 30,  # after how many ptp4l log lines new image is generated (log every one 1s)
-    'location': "/tmp",  # location on where the plots and plots and data will be saved on this pc
-}
+BASE = "ptp4l -m -i "  # this will be used always -- the following argument is interface
 
 # Interfaces used for setup & measurment
 ptp_sec_cons = {
@@ -44,6 +57,17 @@ ptp_sec_cons = {
     WG_INTERFACE.strip(): "198.51.100.",
     MACSEC_INTERFACE.strip(): "203.0.113.",
 }
+
+# currently only these data logs supported
+ptp4l_log_match = Ptp4lDataLogs(
+    {
+        "ptp4l_runtime": "s",  # ptp4l_runtime used just for log consitecny verification
+        "master_offset": "ns",
+        "servo_freq": "ppb",
+        "path_delay": "ns",
+    },
+    r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
+)
 
 ptp_sec_cmds = {
     "no_enc_multicast_udp_hw": {
@@ -89,3 +113,5 @@ ptp_sec_cmds = {
     #     "slave": "ptp4l -m -i eth1 -f settings.cfg -s",
     # },
 }
+
+# endSection

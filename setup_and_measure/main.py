@@ -5,11 +5,13 @@ import ptp_reader
 import sec
 import files_packages
 import networking
+import stats_compare
 from vardata import (
     ssh_conns,
     ptp_sec_cons,
     ptp_sec_cmds,
     ptp_log_config,
+    ptp4l_log_match,
     PHY_INTERFACE,
     WG_INTERFACE,
     MACSEC_INTERFACE,
@@ -38,6 +40,7 @@ def main():
         ssh_slave = MySSHClient(slaves[i].addr, slaves[i].user, slaves[i].passw)
         scp_slave = SCPClient(ssh_slave.get_transport())
 
+        remote_dir = masters[i].dir  # assuming that master and slave will use same remote dir
         wireguard = sec.WireGuardSetup(
             ssh_master,
             scp_master,
@@ -46,7 +49,7 @@ def main():
             ptp_sec_cons,
             PHY_INTERFACE,
             WG_INTERFACE,
-            masters[i].dir
+            remote_dir
         )
         strongswan = sec.StrongSwanSetup(
             ssh_master,
@@ -64,35 +67,36 @@ def main():
             ptp_sec_cons,
             PHY_INTERFACE,
             MACSEC_INTERFACE,
-            masters[i].dir
+            remote_dir
         )
 
         read_ptp = ptp_reader.PtpReader(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds, ptp_log_config
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds, ptp_log_config, ptp4l_log_match
         )
 
         ###
 
-        read_ptp.do("no_enc_multicast_udp_sw")
-        read_ptp.do("no_enc_multicast_l2_sw")
+        # read_ptp.do("no_enc_multicast_udp_sw")
+        # read_ptp.do("no_enc_multicast_l2_sw")
         read_ptp.do("no_enc_multicast_udp_hw")
         read_ptp.do("no_enc_multicast_l2_hw")
         # setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
         # each mode must be defined in the vardata.py
 
-        wireguard.do()
-        wireguard.kill()
-        assert wireguard.get_status() == "off"
+        # wireguard.do()
+        # wireguard.kill()
+        # assert wireguard.get_status() == "off"
 
-        strongswan.do()
-        strongswan.kill()
-        assert strongswan.get_status() == "off"
+        # strongswan.do()
+        # strongswan.kill()
+        # assert strongswan.get_status() == "off"
 
-        macsec.do()
-        macsec.kill()
-        assert macsec.get_status() == "off"
+        # macsec.do()
+        # macsec.kill()
+        # assert macsec.get_status() == "off"
 
+        stats_compare.do(ptp_log_config.location, ptp4l_log_match)
 
 #
 # def sec_set_mes(sec_obj, mes_obj):
