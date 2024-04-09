@@ -6,10 +6,12 @@ from conn_utils import SecUtils
 
 
 class StrongSwanSetup(SecUtils):
-    IFACE_PHY = "eth1"
 
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces):
+    def __init__(
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+    ):
         super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces)
+        self.IFACE_PHY = IFACE_PHY
 
     def do(self):
         self._SecUtils__change_status()
@@ -47,11 +49,13 @@ class StrongSwanSetup(SecUtils):
         remote_addr = (
             interfaces[iface] + shh_remote.get_transport().getpeername()[0][-1]
         )
+        ### tmp variables
         enc_mode = "tunnel"
         local_ts = local_addr[:-1] + "0/24"
         remote_ts = local_ts
         protocol_type = "esp"
         enc_proposals = "aes256gcm128"
+        ###
 
         file_content = f"""\
 connections {{

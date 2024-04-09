@@ -6,12 +6,21 @@ from conn_utils import SecUtils
 
 
 class MacsecSetup(SecUtils):
-    IFACE_PHY = "eth1"
-    IFACE_MACSEC = "macsec0"
-    dst_dir = f"/tmp/{IFACE_MACSEC}"
 
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces):
+    def __init__(
+        self,
+        ssh_master,
+        scp_master,
+        ssh_slave,
+        scp_slave,
+        interfaces,
+        IFACE_PHY,
+        IFACE_MACSEC,
+    ):
         super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces)
+        self.IFACE_PHY = IFACE_PHY
+        self.IFACE_MACSEC = IFACE_MACSEC
+        self.dst_dir = f"/tmp/{IFACE_MACSEC}"
 
     def do(self):
         self._SecUtils__change_status()

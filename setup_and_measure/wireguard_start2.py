@@ -6,12 +6,21 @@ from conn_utils import SecUtils
 
 
 class WireGuardSetup(SecUtils):
-    IFACE_PHY = "eth1"
-    IFACE_WG = "wg0"
-    dst_dir = f"/tmp/{IFACE_WG}"  # just a tmp dir for purpose of creating keys
 
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces):
+    def __init__(
+        self,
+        ssh_master,
+        scp_master,
+        ssh_slave,
+        scp_slave,
+        interfaces,
+        IFACE_PHY,
+        IFACE_WG,
+    ):
         super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces)
+        self.IFACE_PHY = IFACE_PHY
+        self.IFACE_WG = IFACE_WG
+        self.dst_dir = f"/tmp/{IFACE_WG}"  # just a tmp dir for purpose of creating keys
 
     def do(self):
         self._SecUtils__change_status()
@@ -38,6 +47,8 @@ class WireGuardSetup(SecUtils):
         self._SecUtils__change_status()
         self._SecUtils__del_link(self.ssh_master, self.IFACE_WG, self.dst_dir)
         self._SecUtils__del_link(self.ssh_slave, self.IFACE_WG, self.dst_dir)
+
+    # def __ptp_config(self, scp, interfaces):
 
     def __setup_interfaces_keys(self, ssh, iface, interfaces, dst_dir):
         wg_set_comms = (

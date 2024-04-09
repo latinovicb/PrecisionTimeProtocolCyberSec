@@ -1,18 +1,25 @@
 import paramiko
-import signal
 import time
-import sys
-import os
 from scp import SCPClient
-import ptp_reader, wireguard_start2, macsec_start2, strongswan_start2
-import make_packages, networking
-
-a_path = os.path.dirname(__file__)
-sys.path.append("..")
-from Thesis_scripts.vardata import ssh_conns, ptp_sec_cons, ptp_sec_cmds
+import ptp_reader
+import sec
+import files_packages
+import networking
+from vardata import (
+    ssh_conns,
+    ptp_sec_cons,
+    ptp_sec_cmds,
+    PHY_INTERFACE,
+    WG_INTERFACE,
+    MACSEC_INTERFACE,
+)
 
 ssh_user = "root"
 ssh_pass = ""
+
+PHY_INTERFACE = PHY_INTERFACE.strip()
+WG_INTERFACE = WG_INTERFACE.strip()
+MACSEC_INTERFACE = MACSEC_INTERFACE.strip()
 
 
 def main():
@@ -21,51 +28,65 @@ def main():
     assert len(masters) == len(slaves)
     no_peers = len(masters)
 
+    # extra logging info for master so that generators wouldn't bug -- maybe fix generators later
+    for key, value in ptp_sec_cmds.items():
+        ptp_sec_cmds[key]["master"] += " -l 7"
+
     for i in range(no_peers):
-        ### objects
+        # objects
         ssh_master = MySSHClient(masters[i], ssh_user, ssh_pass)
         scp_master = SCPClient(ssh_master.get_transport())
 
         ssh_slave = MySSHClient(slaves[i], ssh_user, ssh_pass)
         scp_slave = SCPClient(ssh_slave.get_transport())
 
-        wireguard = wireguard_start2.WireGuardSetup(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        wireguard = sec.WireGuardSetup(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
+            WG_INTERFACE,
         )
-        strongswan = strongswan_start2.StrongSwanSetup(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        strongswan = sec.StrongSwanSetup(
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE
         )
-        macsec = macsec_start2.MacsecSetup(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons
+        macsec = sec.MacsecSetup(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
+            MACSEC_INTERFACE,
         )
+
+        read_ptp = ptp_reader.PtpReader(
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds
+        )
+
         ###
 
+        # read_ptp.do("no_enc_multicast_udp_sw")
+        # read_ptp.do("no_enc_multicast_l2_sw")
+        # read_ptp.do("no_enc_multicast_udp_hw")
+        # read_ptp.do("no_enc_multicast_l2_hw")
         # setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
-        def read_ptp(mode):
-            ptp_reader.do(
-                ssh_master,
-                scp_master,
-                ssh_slave,
-                scp_slave,
-                ptp_sec_cmds,
-                mode=mode,
-            )
+        # each mode must be defined in the vardata.py
 
-        read_ptp("no_enc_multicast")
-        read_ptp("no_enc_unicast")
+        wireguard.do()
+        wireguard.kill()
+        assert wireguard.get_status() == "off"
 
-        # wireguard.do()
-        # wireguard.kill()
-        # assert wireguard.get_status() == "off"
+        strongswan.do()
+        strongswan.kill()
+        assert strongswan.get_status() == "off"
 
-        # strongswan.do()
-        # strongswan.kill()
-        # assert strongswan.get_status() == "off"
-
-        # macsec.do()
-        # macsec.kill()
-        # assert macsec.get_status() == "off"
+        macsec.do()
+        macsec.kill()
+        assert macsec.get_status() == "off"
 
 
 #
@@ -73,8 +94,8 @@ def main():
 
 
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces):
-    make_packages.do(ssh_master, scp_master)
-    make_packages.do(ssh_slave, scp_master)
+    files_packages.do(ssh_master, scp_master)
+    files_packages.do(ssh_slave, scp_master)
     networking.do(ssh_master, scp_master, interfaces)
     networking.do(ssh_slave, scp_slave, interfaces)
 

@@ -1,10 +1,8 @@
 import re
-import codecs
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from cryptography.hazmat.primitives import serialization
-
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
+
+
 class SecUtils:
     def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces):
         self.ssh_master = ssh_master
