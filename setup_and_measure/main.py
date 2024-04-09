@@ -9,13 +9,11 @@ from vardata import (
     ssh_conns,
     ptp_sec_cons,
     ptp_sec_cmds,
+    ptp_log_config,
     PHY_INTERFACE,
     WG_INTERFACE,
     MACSEC_INTERFACE,
 )
-
-ssh_user = "root"
-ssh_pass = ""
 
 PHY_INTERFACE = PHY_INTERFACE.strip()
 WG_INTERFACE = WG_INTERFACE.strip()
@@ -34,10 +32,10 @@ def main():
 
     for i in range(no_peers):
         # objects
-        ssh_master = MySSHClient(masters[i], ssh_user, ssh_pass)
+        ssh_master = MySSHClient(masters[i].addr, masters[i].user, masters[i].passw)
         scp_master = SCPClient(ssh_master.get_transport())
 
-        ssh_slave = MySSHClient(slaves[i], ssh_user, ssh_pass)
+        ssh_slave = MySSHClient(slaves[i].addr, slaves[i].user, slaves[i].passw)
         scp_slave = SCPClient(ssh_slave.get_transport())
 
         wireguard = sec.WireGuardSetup(
@@ -48,9 +46,15 @@ def main():
             ptp_sec_cons,
             PHY_INTERFACE,
             WG_INTERFACE,
+            masters[i].dir
         )
         strongswan = sec.StrongSwanSetup(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
         )
         macsec = sec.MacsecSetup(
             ssh_master,
@@ -60,18 +64,19 @@ def main():
             ptp_sec_cons,
             PHY_INTERFACE,
             MACSEC_INTERFACE,
+            masters[i].dir
         )
 
         read_ptp = ptp_reader.PtpReader(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds
+            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds, ptp_log_config
         )
 
         ###
 
-        # read_ptp.do("no_enc_multicast_udp_sw")
-        # read_ptp.do("no_enc_multicast_l2_sw")
-        # read_ptp.do("no_enc_multicast_udp_hw")
-        # read_ptp.do("no_enc_multicast_l2_hw")
+        read_ptp.do("no_enc_multicast_udp_sw")
+        read_ptp.do("no_enc_multicast_l2_sw")
+        read_ptp.do("no_enc_multicast_udp_hw")
+        read_ptp.do("no_enc_multicast_l2_hw")
         # setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
         # each mode must be defined in the vardata.py

@@ -8,11 +8,10 @@ import matplotlib.pyplot as plt
 
 
 class PlotSaver:
-    def __init__(self, title, labels_units, location, save_period):
+    def __init__(self, title, labels_units, location):
         self.location = location
         self.title = title
         self.labels_units = labels_units
-        self.save_period = save_period
         self.csv_mode = "x"
         self.fig, self.axs = plt.subplots(3, figsize=(16, 9), dpi=200)
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
@@ -53,7 +52,7 @@ class PlotSaver:
 
 
 class PtpReader():
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, cmds):
+    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, cmds, log_config):
         self.ssh_master = ssh_master
         self.scp_master = scp_master
         self.ssh_slave = ssh_slave
@@ -72,10 +71,9 @@ class PtpReader():
         ###
 
         # Tmp vars -- should be taken as an arguments from main
-        self.timer = 60
-        self.buff_size = 10
-        self.location = "/tmp"
-        self.save_period = 1
+        self.timer = log_config['timer']
+        self.buff_size = log_config['buff_size']
+        self.location = log_config['location']
         ###
 
     def do(self, mode):
@@ -105,7 +103,7 @@ class PtpReader():
         count = 0
         first_indx = 0
         myPlt = PlotSaver(
-            mode, self.labels_units, self.location, self.save_period
+            mode, self.labels_units, self.location
         )
         df = pd.DataFrame(
             columns=self.labels[1:],
@@ -131,9 +129,6 @@ class PtpReader():
             df = df._append(data)  # FIXME: should be changed to concat
             count += 1
 
-    # def __run_sync(
-    #     ssh_master, ssh_slave, ptp_cmd_master, ptp_cmd_slave, timer, labels, pattern
-    # ):
     def __run_sync(self, ptp_cmd_master, ptp_cmd_slave):
         """
         Run sync between server and master and return numbers which were parsed line by line
