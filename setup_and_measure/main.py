@@ -49,7 +49,7 @@ def main():
             ptp_sec_cons,
             PHY_INTERFACE,
             WG_INTERFACE,
-            remote_dir
+            remote_dir,
         )
         strongswan = sec.StrongSwanSetup(
             ssh_master,
@@ -67,25 +67,31 @@ def main():
             ptp_sec_cons,
             PHY_INTERFACE,
             MACSEC_INTERFACE,
-            remote_dir
+            remote_dir,
         )
 
         read_ptp = ptp_reader.PtpReader(
-            ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds, ptp_log_config, ptp4l_log_match
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cmds,
+            ptp_log_config,
+            ptp4l_log_match,
         )
 
         ###
-
         # read_ptp.do("no_enc_multicast_udp_sw")
         # read_ptp.do("no_enc_multicast_l2_sw")
-        read_ptp.do("no_enc_multicast_udp_hw")
-        read_ptp.do("no_enc_multicast_l2_hw")
-        # setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
+        # read_ptp.do("no_enc_multicast_udp_hw")
+        # read_ptp.do("no_enc_multicast_l2_hw")
+        setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
         # each mode must be defined in the vardata.py
 
-        # wireguard.do()
-        # wireguard.kill()
+        wireguard.kill()
+        wireguard.do()
+        wireguard.kill()
         # assert wireguard.get_status() == "off"
 
         # strongswan.do()
@@ -96,7 +102,7 @@ def main():
         # macsec.kill()
         # assert macsec.get_status() == "off"
 
-        stats_compare.do(ptp_log_config.location, ptp4l_log_match)
+        # stats_compare.do(ptp_log_config.location, ptp4l_log_match)
 
 #
 # def sec_set_mes(sec_obj, mes_obj):
@@ -105,8 +111,8 @@ def main():
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces):
     files_packages.do(ssh_master, scp_master)
     files_packages.do(ssh_slave, scp_master)
-    networking.do(ssh_master, scp_master, interfaces)
-    networking.do(ssh_slave, scp_slave, interfaces)
+    # networking.do(ssh_master, scp_master, interfaces)
+    # networking.do(ssh_slave, scp_slave, interfaces)
 
 
 class CommandTimeout(Exception):
@@ -114,26 +120,23 @@ class CommandTimeout(Exception):
 
 
 class MySSHClient(paramiko.SSHClient):
-    def __init__(self, server, user, passw):
+    def __init__(self, addr, user, passw):
         super().__init__()
-        self.server = server
+        self.addr = addr
         self.load_system_host_keys()
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        self.connect(server, username=user, password=passw)
+        self.connect(addr, username=user, password=passw)
         # try:
         # except paramiko.ssh_exception.BadHostKeyException as e:
         #     # assuming that .ssh is in ~
-        #     os.system(f"ssh-keygen -f '/home/bl/.ssh/known_hosts' -R '{server}'")
+        #     os.system(f"ssh-keygen -f '/home/bl/.ssh/known_hosts' -R '{addr}'")
 
     def __error_check(self, stderr):
         errors = stderr.read().decode().strip()
         if errors:
-            # raise Exception(f"{self.server}: {errors}")
-            print(f"{self.server}: {errors}")
-
-    def __handler(self, signum, frame):
-        raise CommandTimeout(f"Timed out {signum}, {frame}")
+            # raise Exception(f"{self.addr}: {errors}")
+            print(f"{self.addr}: {errors}")
 
     def run_command(self, command):
         """
@@ -160,6 +163,7 @@ class MySSHClient(paramiko.SSHClient):
         stdin, stdout, stderr = self.exec_command(command, get_pty=True)
 
         for line in iter(stdout.readline, ""):
+            print(type(line))  # FIXME: make sure generator does not get stuck when there is no line
             if time.time() > start_time + seconds:
                 return
             yield line

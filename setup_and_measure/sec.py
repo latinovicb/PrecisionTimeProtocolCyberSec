@@ -16,27 +16,16 @@ class WireGuardSetup(SecUtils):
         IFACE_WG,
         remote_dir
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces)
-        self.IFACE_PHY = IFACE_PHY
+        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY)
         self.IFACE_WG = IFACE_WG
         self.dst_dir = f"/{remote_dir}/{IFACE_WG}"  # just a tmp dir for wireguard purposes
 
     def do(self):
         self._SecUtils__change_status()
         try:
-            self.__setup_interfaces_keys(
-                self.ssh_master, self.IFACE_WG, self.interfaces, self.dst_dir
-            )
-            self.__setup_interfaces_keys(
-                self.ssh_slave, self.IFACE_WG, self.interfaces, self.dst_dir
-            )
-            self.__setup_peers(
-                self.ssh_master,
-                self.ssh_slave,
-                self.IFACE_PHY,
-                self.IFACE_WG,
-                self.interfaces,
-            )
+            self.__setup_interfaces_keys(self.ssh_master)
+            self.__setup_interfaces_keys(self.ssh_slave)
+            self.__setup_peers()
             print("Okay")
         except Exception as e:
             self.kill()
@@ -47,7 +36,7 @@ class WireGuardSetup(SecUtils):
         self._SecUtils__del_link(self.ssh_master, self.IFACE_WG, self.dst_dir)
         self._SecUtils__del_link(self.ssh_slave, self.IFACE_WG, self.dst_dir)
 
-    def __setup_interfaces_keys(self, ssh, iface, interfaces, dst_dir):
+    def __setup_interfaces_keys(self, ssh):
         wg_set_comms = (
             "mkdir {dst_dir}",
             "./wireguard-go {iface}",
@@ -58,37 +47,28 @@ class WireGuardSetup(SecUtils):
             "ip link set dev {iface} multicast on",
             "ip a a {addr_virt}/24 dev {iface}",
         )
-        self._SecUtils__generic_cmds(wg_set_comms, ssh, iface, interfaces, dst_dir)
+        self._SecUtils__generic_cmds(wg_set_comms, ssh, self.IFACE_WG, do_format=True)
         # cmds, ssh, iface=None, interfaces=None, dst_dir=None, do_format=True
 
-    def __setup_peers(self, ssh_master, ssh_slave, ifac_phy, ifac_wg, interfaces):
-        pub_master, port_master = self.__get_wg_info(ssh_master, ifac_wg)
-        pub_slave, port_slave = self.__get_wg_info(ssh_slave, ifac_wg)
+    def __setup_peers(self):
+        pub_master, port_master = self.__get_wg_info(self.ssh_master, self.IFACE_WG)
+        pub_slave, port_slave = self.__get_wg_info(self.ssh_slave, self.IFACE_WG)
 
-        addr_slave = ssh_master.get_transport().getpeername()[0]
-        addr_master = ssh_slave.get_transport().getpeername()[0]
-
-        wg_addr_slave = self.__set_wg_peer(
-            ssh_slave,
-            addr_slave,
+        wg_addr_master = self.__set_wg_peer(
+            self.ssh_slave,
+            self.ssh_master.addr,
             pub_master,
             port_master,
-            ifac_phy,
-            ifac_wg,
-            interfaces,
         )
-        wg_addr_master = self.__set_wg_peer(
-            ssh_master,
-            addr_master,
+        wg_addr_slave = self.__set_wg_peer(
+            self.ssh_master,
+            self.ssh_slave.addr,
             pub_slave,
             port_slave,
-            ifac_phy,
-            ifac_wg,
-            interfaces,
         )
 
-        self._SecUtils__verify_connectivity(ssh_master, wg_addr_master)
-        self._SecUtils__verify_connectivity(ssh_slave, wg_addr_slave)
+        self._SecUtils__verify_connectivity(self.ssh_master, wg_addr_slave)
+        self._SecUtils__verify_connectivity(self.ssh_slave, wg_addr_master)
 
     def __get_wg_info(self, ssh, iface):
         public_key = ssh.run_command(f"wg show {iface} public-key")
@@ -96,10 +76,13 @@ class WireGuardSetup(SecUtils):
 
         return public_key, port_num
 
-    def __set_wg_peer(self, ssh, ADDR, pub, port, ifac_phy, ifac_wg, interfaces):
+    def __set_wg_peer(self, ssh, peer_addr, pub, port):
+        ifac_phy = self.IFACE_PHY
+        ifac_wg = self.IFACE_WG
+
         ifaces = {
-            ifac_phy: f"{interfaces[ifac_phy]}{ADDR[-1]}",
-            ifac_wg: f"{interfaces[ifac_wg]}{ADDR[-1]}",
+            ifac_phy: f"{self.interfaces[ifac_phy]}{peer_addr[-1]}",
+            ifac_wg: f"{self.interfaces[ifac_wg]}{peer_addr[-1]}",
         }
 
         cmd = f"wg set {ifac_wg} peer {pub.strip()} allowed-ips {ifaces[ifac_wg]}/32,224.0.1.129/32,224.0.0.107/32 endpoint {ifaces[ifac_phy]}:{port}"
@@ -113,30 +96,15 @@ class StrongSwanSetup(SecUtils):
     def __init__(
         self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces)
-        self.IFACE_PHY = IFACE_PHY
+        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY)
 
     def do(self):
         self._SecUtils__change_status()
         try:
             ike_key = self._SecUtils__gen_urandom_key()
-            self.__set_conf_file(
-                self.ssh_master,
-                self.ssh_slave,
-                self.IFACE_PHY,
-                self.interfaces,
-                ike_key,
-            )
-            self.__set_conf_file(
-                self.ssh_slave,
-                self.ssh_master,
-                self.IFACE_PHY,
-                self.interfaces,
-                ike_key,
-            )
-            self.__setup_peers(
-                self.ssh_master, self.ssh_slave, self.IFACE_PHY, self.interfaces
-            )
+            self.__set_conf_file(self.ssh_master,self.ssh_slave,ike_key,)
+            self.__set_conf_file(self.ssh_slave,self.ssh_master,ike_key,)
+            self.__setup_peers()
 
         except Exception as e:
             self.kill()
@@ -147,11 +115,9 @@ class StrongSwanSetup(SecUtils):
         self.ssh_master.run_command("systemctl stop strongswan")
         self.ssh_slave.run_command("systemctl stop strongswan")
 
-    def __set_conf_file(self, ssh_local, shh_remote, iface, interfaces, ike_key):
-        local_addr = interfaces[iface] + ssh_local.get_transport().getpeername()[0][-1]
-        remote_addr = (
-            interfaces[iface] + shh_remote.get_transport().getpeername()[0][-1]
-        )
+    def __set_conf_file(self, ssh_local, shh_remote, ike_key):
+        local_addr = self.interfaces[self.IFACE_PHY] + ssh_local.addr[-1]
+        remote_addr = self.interfaces[self.IFACE_PHY] + shh_remote.addr[-1]
         # tmp variables
         enc_mode = "tunnel"
         local_ts = local_addr[:-1] + "0/24"
@@ -174,7 +140,7 @@ connections {{
 
         children {{
             ptp-conn {{
-                interface={iface}
+                interface={self.IFACE_PHY}
                 mode={enc_mode}
                 local_ts={local_ts}
                 remote_ts={remote_ts}
@@ -192,27 +158,24 @@ secrets {{
 """
 
         comms = [
-            "systemctl restart strongswan",
             "echo '" + file_content + "' > /etc/swanctl/conf.d/swanctl.conf",
+            "systemctl restart strongswan",
         ]
 
         self._SecUtils__generic_cmds(comms, ssh_local, do_format=False)
 
-    def __setup_peers(self, ssh_master, ssh_slave, iface, interfaces):
-        conn_status = ssh_master.run_command("swanctl -i --child ptp-conn")
+    def __setup_peers(self):
+        conn_status = self.ssh_master.run_command("swanctl -i --child ptp-conn")
 
-        if "failed" in conn_status:
+        if "failed" in conn_status or "Error" in conn_status:
             print(conn_status)
             raise Exception
 
-        addr_master = ssh_master.get_transport().getpeername()[0]
-        addr_slave = ssh_slave.get_transport().getpeername()[0]
-
         self._SecUtils__verify_connectivity(
-            ssh_master, f"{interfaces[iface]}{addr_slave[-1]}"
+            self.ssh_master, f"{self.interfaces[self.IFACE_PHY]}{self.ssh_slave.addr[-1]}"
         )
         self._SecUtils__verify_connectivity(
-            ssh_slave, f"{interfaces[iface]}{addr_master[-1]}"
+            self.ssh_slave, f"{self.interfaces[self.IFACE_PHY]}{self.ssh_master.addr[-1]}"
         )
 
 
@@ -229,34 +192,16 @@ class MacsecSetup(SecUtils):
         IFACE_MACSEC,
         remote_dir
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces)
-        self.IFACE_PHY = IFACE_PHY
+        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces,IFACE_PHY)
         self.IFACE_MACSEC = IFACE_MACSEC
         self.dst_dir = f"/{remote_dir}/{IFACE_MACSEC}"
 
     def do(self):
         self._SecUtils__change_status()
         try:
-            self.__setup_interfaces_keys(
-                self.ssh_master,
-                self.IFACE_MACSEC,
-                self.interfaces,
-                self.dst_dir,
-            )
-            self.__setup_interfaces_keys(
-                self.ssh_slave,
-                self.IFACE_MACSEC,
-                self.interfaces,
-                self.dst_dir,
-            )
-            self.__setup_peers(
-                self.ssh_master,
-                self.ssh_slave,
-                self.IFACE_PHY,
-                self.IFACE_MACSEC,
-                self.interfaces,
-                self.dst_dir,
-            )
+            self.__setup_interfaces_keys(self.ssh_master,)
+            self.__setup_interfaces_keys(self.ssh_slave,)
+            self.__setup_peers()
             print("Okay")
         except Exception as e:
             self.kill()
@@ -267,7 +212,7 @@ class MacsecSetup(SecUtils):
         self._SecUtils__del_link(self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
         self._SecUtils__del_link(self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
 
-    def __setup_interfaces_keys(self, ssh, iface, interfaces, dst_dir):
+    def __setup_interfaces_keys(self, ssh):
         macsec_set_comms = (
             "mkdir {dst_dir}",
             "dd if=/dev/urandom count=16 bs=1 2> /dev/null | hexdump -e '1/2 \"%04x\"' > {dst_dir}/private_key",
@@ -275,38 +220,28 @@ class MacsecSetup(SecUtils):
             "ip macsec add macsec0 tx sa 0 pn 100 on key 02 `cat {dst_dir}/private_key`",
             "ip a a {addr_virt}/24 dev {iface}",
         )
-        self._SecUtils__generic_cmds(macsec_set_comms, ssh, iface, interfaces, dst_dir)
 
-    def __setup_peers(
-        self, ssh_master, ssh_slave, ifac_phy, ifac_macsec, interfaces, dst_dir
-    ):
-        mac_master, key_master = self.__get_mac_info(ssh_master, ifac_macsec, dst_dir)
-        mac_slave, key_slave = self.__get_mac_info(ssh_slave, ifac_macsec, dst_dir)
+        self._SecUtils__generic_cmds(macsec_set_comms, ssh, self.IFACE_MACSEC, do_format=True)
 
-        addr_slave = ssh_master.get_transport().getpeername()[0]
-        addr_master = ssh_slave.get_transport().getpeername()[0]
+    def __setup_peers(self):
+        mac_master, key_master = self.__get_mac_info(self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
+        mac_slave, key_slave = self.__get_mac_info(self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
 
-        macsec_addr_slave = self.__set_mac_peer(
-            ssh_slave,
-            addr_slave,
+        macsec_addr_master = self.__set_mac_peer(
+            self.ssh_slave,
+            self.ssh_master.addr,
             mac_master,
-            ifac_phy,
-            ifac_macsec,
-            interfaces,
             key_master,
         )
-        macsec_addr_master = self.__set_mac_peer(
-            ssh_master,
-            addr_master,
+        macsec_addr_slave = self.__set_mac_peer(
+            self.ssh_master,
+            self.ssh_slave.addr,
             mac_slave,
-            ifac_phy,
-            ifac_macsec,
-            interfaces,
             key_slave,
         )
 
-        self._SecUtils__verify_connectivity(ssh_master, macsec_addr_master)
-        self._SecUtils__verify_connectivity(ssh_slave, macsec_addr_slave)
+        self._SecUtils__verify_connectivity(self.ssh_master, macsec_addr_slave)
+        self._SecUtils__verify_connectivity(self.ssh_slave, macsec_addr_master)
 
     def __get_mac_info(self, ssh, iface, dst_dir):
         iface_info = ssh.run_command(f"ip link show {iface}")
@@ -314,16 +249,16 @@ class MacsecSetup(SecUtils):
         key = ssh.run_command(f"cat {dst_dir}/private_key")
         return mac_address, key
 
-    def __set_mac_peer(self, ssh, ADDR, mac, ifac_phy, ifac_macsec, interfaces, key):
+    def __set_mac_peer(self, ssh, peer_addr, mac, key):
+        ifac_phy = self.IFACE_PHY
+        ifac_macsec = self.IFACE_MACSEC
         ifaces = {
-            ifac_phy: f"{interfaces[ifac_phy]}{ADDR[-1]}",
-            ifac_macsec: f"{interfaces[ifac_macsec]}{ADDR[-1]}",
+            ifac_phy: f"{self.interfaces[ifac_phy]}{peer_addr[-1]}",
+            ifac_macsec: f"{self.interfaces[ifac_macsec]}{peer_addr[-1]}",
         }
 
         ssh.run_command(f"ip macsec add macsec0 rx address {mac} port 1")
-        ssh.run_command(
-            f"ip macsec add macsec0 rx address {mac} port 1 sa 0 pn 100 on key 02 {key}"
-        )
+        ssh.run_command(f"ip macsec add macsec0 rx address {mac} port 1 sa 0 pn 100 on key 02 {key}")
         ssh.run_command(f"ip link set dev {ifac_macsec} up")
 
         return ifaces[ifac_macsec]
