@@ -5,6 +5,7 @@ import ptp_reader
 import sec
 import files_packages
 import networking
+import ptp_config_files
 import stats_compare
 from vardata import (
     ssh_conns,
@@ -81,12 +82,12 @@ def main():
             ptp4l_log_match,
         )
 
+        setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons, remote_dir)
         ###
         # read_ptp.do("no_enc_multicast_udp_sw")
         # read_ptp.do("no_enc_multicast_l2_sw")
         read_ptp.do("no_enc_multicast_udp_hw")
         read_ptp.do("no_enc_multicast_l2_hw")
-        setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
         # each mode must be defined in the vardata.py
 
@@ -111,11 +112,12 @@ def main():
 # def sec_set_mes(sec_obj, mes_obj):
 
 
-def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces):
+def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
     files_packages.do(ssh_master, scp_master)
     files_packages.do(ssh_slave, scp_master)
-    networking.do(ssh_master,interfaces,PHY_INTERFACE, netmask)
-    networking.do(ssh_slave,interfaces,PHY_INTERFACE, netmask)
+    networking.do(ssh_master,interfaces, PHY_INTERFACE, netmask)
+    networking.do(ssh_slave,interfaces, PHY_INTERFACE, netmask)
+    ptp_config_files.do(ssh_master,ssh_slave, interfaces,PHY_INTERFACE, remote_dir)
 
 
 class CommandTimeout(Exception):

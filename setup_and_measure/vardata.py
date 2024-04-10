@@ -49,6 +49,9 @@ L3 = " -4 "  # ipv4 only
 HW = " -H "
 SW = " -S "
 SLAVE = " -s "
+CUSTOM_ID = " -f ptp_clock_id.cfg "
+UNICAST_MASTER = " -f unicast_master.cfg "
+UNICAST_SLAVE = " -f unicast_slave.cfg "
 BASE = "ptp4l -m -i "  # this will be used always -- the following argument is interface
 
 # Interfaces used for setup & measurment
