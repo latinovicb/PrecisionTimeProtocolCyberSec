@@ -2,7 +2,6 @@ import re
 from conn_utils import SecUtils
 
 
-# TODO make functions more comprehensible by removing excess arguments and using instead self. keywords
 class WireGuardSetup(SecUtils):
 
     def __init__(

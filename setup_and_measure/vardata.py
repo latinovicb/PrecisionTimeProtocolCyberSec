@@ -69,6 +69,8 @@ ptp4l_log_match = Ptp4lDataLogs(
     r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
 )
 
+netmask = "/24"  # this netmask will be assumed for everything
+
 ptp_sec_cmds = {
     "no_enc_multicast_udp_hw": {
         "master": BASE + PHY_INTERFACE + L3 + HW,

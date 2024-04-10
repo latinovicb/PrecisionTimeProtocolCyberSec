@@ -12,6 +12,7 @@ from vardata import (
     ptp_sec_cmds,
     ptp_log_config,
     ptp4l_log_match,
+    netmask,
     PHY_INTERFACE,
     WG_INTERFACE,
     MACSEC_INTERFACE,
@@ -83,8 +84,8 @@ def main():
         ###
         # read_ptp.do("no_enc_multicast_udp_sw")
         # read_ptp.do("no_enc_multicast_l2_sw")
-        # read_ptp.do("no_enc_multicast_udp_hw")
-        # read_ptp.do("no_enc_multicast_l2_hw")
+        read_ptp.do("no_enc_multicast_udp_hw")
+        read_ptp.do("no_enc_multicast_l2_hw")
         setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons)
 
         # each mode must be defined in the vardata.py
@@ -94,15 +95,17 @@ def main():
         wireguard.kill()
         # assert wireguard.get_status() == "off"
 
-        # strongswan.do()
-        # strongswan.kill()
+        strongswan.kill()
+        strongswan.do()
+        strongswan.kill()
         # assert strongswan.get_status() == "off"
 
-        # macsec.do()
-        # macsec.kill()
+        macsec.kill()
+        macsec.do()
+        macsec.kill()
         # assert macsec.get_status() == "off"
 
-        # stats_compare.do(ptp_log_config.location, ptp4l_log_match)
+        stats_compare.do(ptp_log_config.location, ptp4l_log_match)
 
 #
 # def sec_set_mes(sec_obj, mes_obj):
@@ -111,8 +114,8 @@ def main():
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces):
     files_packages.do(ssh_master, scp_master)
     files_packages.do(ssh_slave, scp_master)
-    # networking.do(ssh_master, scp_master, interfaces)
-    # networking.do(ssh_slave, scp_slave, interfaces)
+    networking.do(ssh_master,interfaces,PHY_INTERFACE, netmask)
+    networking.do(ssh_slave,interfaces,PHY_INTERFACE, netmask)
 
 
 class CommandTimeout(Exception):
@@ -123,6 +126,7 @@ class MySSHClient(paramiko.SSHClient):
     def __init__(self, addr, user, passw):
         super().__init__()
         self.addr = addr
+        self.stuck_cmd = 10  # timeout if there is not data comming from stdout -- keep it >10s just to be safe
         self.load_system_host_keys()
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -132,11 +136,10 @@ class MySSHClient(paramiko.SSHClient):
         #     # assuming that .ssh is in ~
         #     os.system(f"ssh-keygen -f '/home/bl/.ssh/known_hosts' -R '{addr}'")
 
-    def __error_check(self, stderr):
+    def __stderr_check(self, stderr):
         errors = stderr.read().decode().strip()
         if errors:
-            # raise Exception(f"{self.addr}: {errors}")
-            print(f"{self.addr}: {errors}")
+            print(f"{self.addr} warning/err: {errors}")
 
     def run_command(self, command):
         """
@@ -144,29 +147,27 @@ class MySSHClient(paramiko.SSHClient):
         """
         print(" : ", command)
 
-        timeout_t = str(3)  # all single execution commands have specific timeout
-        try:
-            stdin, stdout, stderr = self.exec_command(
-                "timeout " + timeout_t + " " + command
-            )
-            self.__error_check(stderr)
+        try:  # all single execution commands have specific timeout
+            stdin, stdout, stderr = self.exec_command(command, timeout=self.stuck_cmd)
+            self.__stderr_check(stderr)
             return stdout.read().decode().strip()
-        except CommandTimeout:
-            print("Command timeout: ", command)
-            return
+        except TimeoutError as e:
+            print("timed out ", command)
+            print(e)
 
     def run_continous(self, command, seconds):
         """
         to be used if long outputs are expected - generator with timer
         """
         start_time = time.time()
-        stdin, stdout, stderr = self.exec_command(command, get_pty=True)
-
-        for line in iter(stdout.readline, ""):
-            print(type(line))  # FIXME: make sure generator does not get stuck when there is no line
-            if time.time() > start_time + seconds:
-                return
-            yield line
+        stdin, stdout, stderr = self.exec_command(command, get_pty=True, timeout=self.stuck_cmd)
+        try:
+            for line in iter(stdout.readline, ""):
+                if time.time() > start_time + seconds:
+                    return
+                yield line
+        except TimeoutError:
+            print(command, " done")
 
 
 if __name__ == "__main__":
