@@ -86,27 +86,27 @@ def main():
         ###
         # read_ptp.do("no_enc_multicast_udp_sw")
         # read_ptp.do("no_enc_multicast_l2_sw")
-        read_ptp.do("no_enc_multicast_udp_hw")
-        read_ptp.do("no_enc_multicast_l2_hw")
+        # read_ptp.do("no_enc_multicast_udp_hw")
+        # read_ptp.do("no_enc_multicast_l2_hw")
 
         # each mode must be defined in the vardata.py
 
-        wireguard.kill()
-        wireguard.do()
-        wireguard.kill()
-        # assert wireguard.get_status() == "off"
+        # wireguard.kill()
+        # wireguard.do()
+        # wireguard.kill()
+        # # assert wireguard.get_status() == "off"
 
-        strongswan.kill()
-        strongswan.do()
-        strongswan.kill()
-        # assert strongswan.get_status() == "off"
+        # strongswan.kill()
+        # strongswan.do()
+        # strongswan.kill()
+        # # assert strongswan.get_status() == "off"
 
-        macsec.kill()
-        macsec.do()
-        macsec.kill()
+        # macsec.kill()
+        # macsec.do()
+        # macsec.kill()
         # assert macsec.get_status() == "off"
 
-        stats_compare.do(ptp_log_config.location, ptp4l_log_match)
+        stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
 
 #
 # def sec_set_mes(sec_obj, mes_obj):

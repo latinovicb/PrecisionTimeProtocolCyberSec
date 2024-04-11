@@ -1,5 +1,5 @@
 import re
-from conn_utils import SecUtils
+from class_utils import SecUtils
 
 
 class WireGuardSetup(SecUtils):

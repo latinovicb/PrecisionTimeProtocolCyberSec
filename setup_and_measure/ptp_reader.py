@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import re
+from class_utils import PlotUtils
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)  # FIXME: df._append below
 
@@ -10,49 +11,25 @@ warnings.simplefilter(action='ignore', category=FutureWarning)  # FIXME: df._app
 # so they could be compared between each other
 
 
-class PlotSaver:
-    def __init__(self, title, labels_units, location):
-        self.location = location
-        self.title = title
-        self.labels_units = labels_units
-        self.csv_mode = "x"
-        self.fig, self.axs = plt.subplots(3, figsize=(16, 9), dpi=200)
+class PTPSinglePlotter(PlotUtils):
+    def __init__(self, title, labels_units, location,plot_kwargs):
+        super().__init__(title,labels_units,location,plot_kwargs)
+        self.csv_first_write = True
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
-        # plt.rcParams["figure.figsize"] = [12.04, 7.68]
-        plt.ion()
 
     def update(self, data):
-        for i in range(len(self.labels_units.keys()) - 1):
-            self.__plot_next(
-                self.axs[i],
-                list(self.labels_units.keys())[i + 1],
-                list(self.labels_units.values())[i + 1],
-                data,
-            )
-
-        # self.fig.canvas.draw()
-        self.__save_fig()
+        self._PlotUtils__update(data)
         self.__save_csv(data)
 
-    def __plot_next(self, ax, name, unit, data):
-        ax.title.set_text(name)
-        ax.set(ylabel=unit)
-        ax.plot(data[name], label=name, linestyle=(0, (1, 10)), color="blue")
-
-    def __save_fig(self):
-        name = f"{self.location}/{self.title}"
-        print(f"Figure updated/saved to {name}")
-        plt.savefig(name)
-
     def __save_csv(self, data):
-        print(self.csv_mode)
         name = f"{self.location}/{self.title}.csv"
-        try:
-            data.to_csv(name, mode=self.csv_mode, header=False)
-        except FileExistsError as e:
-            print(e, f" ... rewriting file {name}")
-            data.to_csv(name, mode="w")
-            self.csv_mode = "a"
+        if self.csv_first_write:
+            print(f" ... rewriting/creating file {name}")
+            data.to_csv(name, mode="w", header=True)
+            self.csv_first_write = False
+        else:
+            print(f" appending to file {name}")
+            data.to_csv(name, mode="a", header=False)
 
 
 class PtpReader():
@@ -97,8 +74,9 @@ class PtpReader():
 
         count = 0
         first_indx = 0
-        myPlt = PlotSaver(
-            mode, self.labels_units, self.location
+        plot_kwargs = {'linestyle':(0, (1, 10)), "color": "blue"}
+        myPlt = PTPSinglePlotter(
+            mode, self.labels_units, self.location, plot_kwargs
         )
         df = pd.DataFrame(
             columns=self.labels[1:],

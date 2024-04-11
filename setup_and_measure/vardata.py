@@ -34,7 +34,7 @@ ssh_conns = {
     "slave": [SSHConn("192.168.88.102","root","","tmp"),],
 }
 
-ptp_log_config = PlotLogConf(60,30,"/tmp/ptp_reads")
+ptp_log_config = PlotLogConf(60,10,"/tmp/ptp_reads")
 
 # endSection
 

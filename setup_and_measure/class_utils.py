@@ -1,4 +1,5 @@
 import re
+import matplotlib.pyplot as plt
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
 
@@ -57,3 +58,41 @@ class SecUtils:
 
         final = "".join([f"{byte:02x}" for byte in random_bytes])
         return final
+
+
+class PlotUtils:
+    def __init__(self, title, labels_units, location, plot_kwargs):
+        self.title = title
+        self.location = location
+        self.labels_units = labels_units
+        self.plot_kwargs = plot_kwargs
+        self.fig, self.axs = plt.subplots(len(labels_units) - 1, figsize=(16, 9), dpi=200)
+
+        self.first_write = True
+        self.fig.suptitle(f"ptp4l parsed data -- {title}")
+        # plt.rcParams["figure.figsize"] = [12.04, 7.68]
+        plt.ion()
+
+    def __update(self, data, line_name=None):
+        for i in range(len(self.labels_units.keys()) - 1):
+            self.__plot_next(
+                data,
+                self.axs[i],
+                list(self.labels_units.keys())[i + 1],
+                list(self.labels_units.values())[i + 1],
+                line_name,
+            )
+
+        self.__save_fig()
+
+    def __plot_next(self, data, ax, name, unit, line_name=None):
+        ax.title.set_text(name)
+        ax.set(ylabel=unit)
+        ax.plot(data[name], label=line_name, **self.plot_kwargs)
+        if line_name is not None:
+            ax.legend()
+
+    def __save_fig(self):
+        name = f"{self.location}/{self.title}"
+        print(f"Figure updated/saved to {name}")
+        plt.savefig(name)
