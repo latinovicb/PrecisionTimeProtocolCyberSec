@@ -91,27 +91,35 @@ def main():
 
         setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons, remote_dir)
         ###
+
+        # each PTP mode must be defined in the vardata.py
+
         read_ptp.do("no_enc_multicast_udp_sw")
         read_ptp.do("no_enc_multicast_l2_sw")
-        read_ptp.do("no_enc_multicast_udp_hw")
-        read_ptp.do("no_enc_multicast_l2_hw")
+        read_ptp.do("no_enc_unicast_udp_sw")
+        read_ptp.do("no_enc_unicast_l2_sw")
 
-        # each mode must be defined in the vardata.py
+        wireguard.kill()
+        wireguard.do()
+        read_ptp.do("wg_enc_multicast_udp_sw")
+        read_ptp.do("wg_enc_multicast_l2_sw")
+        wireguard.kill()
+        assert wireguard.status is False
 
-        # wireguard.kill()
-        # wireguard.do()
-        # wireguard.kill()
-        # # assert wireguard.get_status() == "off"
+        strongswan.kill()
+        strongswan.do()
+        read_ptp.do("ipsec_enc_unicast_udp_sw")
+        strongswan.kill()
+        assert strongswan.status is False
 
-        # strongswan.kill()
-        # strongswan.do()
-        # strongswan.kill()
-        # # assert strongswan.get_status() == "off"
-
-        # macsec.kill()
-        # macsec.do()
-        # macsec.kill()
-        # assert macsec.get_status() == "off"
+        macsec.kill()
+        macsec.do()
+        read_ptp.do("macsec_enc_multicast_udp_sw")
+        read_ptp.do("macsec_enc_multicast_l2_sw")
+        read_ptp.do("macsec_enc_unicast_udp_sw")
+        read_ptp.do("macsec_enc_unicast_l2_sw")
+        macsec.kill()
+        assert macsec.status is False
 
         stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
         stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw")

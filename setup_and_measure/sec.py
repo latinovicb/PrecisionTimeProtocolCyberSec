@@ -20,7 +20,7 @@ class WireGuardSetup(SecUtils):
         self.dst_dir = f"/{remote_dir}/{IFACE_WG}"  # just a tmp dir for wireguard purposes
 
     def do(self):
-        self._SecUtils__change_status()
+        self.status = True
         try:
             self.__setup_interfaces_keys(self.ssh_master)
             self.__setup_interfaces_keys(self.ssh_slave)
@@ -31,7 +31,7 @@ class WireGuardSetup(SecUtils):
             raise e
 
     def kill(self):
-        self._SecUtils__change_status()
+        self.status = False
         self._SecUtils__del_link(self.ssh_master, self.IFACE_WG, self.dst_dir)
         self._SecUtils__del_link(self.ssh_slave, self.IFACE_WG, self.dst_dir)
 
@@ -98,7 +98,7 @@ class StrongSwanSetup(SecUtils):
         super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY)
 
     def do(self):
-        self._SecUtils__change_status()
+        self.status = True
         try:
             ike_key = self._SecUtils__gen_urandom_key()
             self.__set_conf_file(self.ssh_master,self.ssh_slave,ike_key,)
@@ -110,7 +110,7 @@ class StrongSwanSetup(SecUtils):
             raise e
 
     def kill(self):
-        self._SecUtils__change_status()
+        self.status = False
         self.ssh_master.run_command("systemctl stop strongswan")
         self.ssh_slave.run_command("systemctl stop strongswan")
 
@@ -196,7 +196,7 @@ class MacsecSetup(SecUtils):
         self.dst_dir = f"/{remote_dir}/{IFACE_MACSEC}"
 
     def do(self):
-        self._SecUtils__change_status()
+        self.status = True
         try:
             self.__setup_interfaces_keys(self.ssh_master,)
             self.__setup_interfaces_keys(self.ssh_slave,)
@@ -207,7 +207,7 @@ class MacsecSetup(SecUtils):
             raise e
 
     def kill(self):
-        self._SecUtils__change_status()
+        self.status = False
         self._SecUtils__del_link(self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
         self._SecUtils__del_link(self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
 

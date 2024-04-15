@@ -12,13 +12,7 @@ class SecUtils:
         self.scp_slave = scp_slave
         self.interfaces = interfaces
         self.IFACE_PHY = IFACE_PHY
-        self.status = "off"
-
-    def get_status(self):
-        return self.status
-
-    def __change_status(self):
-        self.status = "on" if self.status == "off" else "off"
+        self.status = None
 
     def __verify_connectivity(self, ssh, peer_addr):
         """
@@ -66,6 +60,7 @@ class PlotUtils:
         self.location = location
         self.labels_units = labels_units
         self.plot_kwargs = plot_kwargs
+        self.fig_type = ".svg"
         self.fig, self.axs = plt.subplots(len(labels_units) - 1, figsize=(16, 9), dpi=200)
 
         self.first_write = True
@@ -95,4 +90,4 @@ class PlotUtils:
     def __save_fig(self):
         name = f"{self.location}/{self.title}"
         print(f"Figure updated/saved to {name}")
-        plt.savefig(name)
+        plt.savefig(name + self.fig_type)

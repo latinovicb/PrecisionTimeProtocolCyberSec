@@ -26,12 +26,13 @@ class Ptp4lDataLogs:
 PHY_INTERFACE = " eth1 "
 WG_INTERFACE = " wg0 "
 MACSEC_INTERFACE = " macsec0 "
+REMOTE_DIR = "tmp"
 
 
 # multiple pairs of masters/slaves can be done
 ssh_conns = {
-    "master": [SSHConn("192.168.88.101","root","","tmp"),],
-    "slave": [SSHConn("192.168.88.102","root","","tmp"),],
+    "master": [SSHConn("192.168.88.101","root","",REMOTE_DIR),],
+    "slave": [SSHConn("192.168.88.102","root","",REMOTE_DIR),],
 }
 
 ptp_log_config = PlotLogConf(60,10,"/tmp/ptp_reads")
@@ -49,9 +50,9 @@ L3 = " -4 "  # ipv4 only
 HW = " -H "
 SW = " -S "
 SLAVE = " -s "
-CUSTOM_ID = " -f ptp_clock_id.cfg "
-UNICAST_MASTER = " -f unicast_master.cfg "
-UNICAST_SLAVE = " -f unicast_slave.cfg "
+CUSTOM_ID = f" -f /{REMOTE_DIR}/ptp_clock_id.cfg "
+UNICAST_MASTER = f" -f /{REMOTE_DIR}/unicast_master.cfg "
+UNICAST_SLAVE = f" -f /{REMOTE_DIR}/unicast_slave.cfg "
 BASE = "ptp4l -m -i "  # this will be used always -- the following argument is interface
 
 # Interfaces used for setup & measurment
@@ -75,6 +76,7 @@ ptp4l_log_match = Ptp4lDataLogs(
 netmask = "/24"  # this netmask will be assumed for everything
 
 ptp_sec_cmds = {
+    ################################ SW_TIMESTAMPING ################################
     "no_enc_multicast_udp_sw": {
         "master": BASE + PHY_INTERFACE + L3 + SW,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE,
@@ -84,6 +86,57 @@ ptp_sec_cmds = {
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE,
     },
 
+    "no_enc_unicast_udp_sw": {
+        "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
+    },
+    "no_enc_unicast_l2_sw": {
+        "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    },
+
+    # NOTE: wg tested only with multicast
+    "wg_enc_multicast_udp_sw": {
+        "master": BASE + WG_INTERFACE + L3 + SW + CUSTOM_ID,
+        "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + CUSTOM_ID,
+    },
+
+    "wg_enc_multicast_l2_sw": {
+        "master": BASE + WG_INTERFACE + L2 + SW + CUSTOM_ID,
+        "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + CUSTOM_ID,
+    },
+
+    # NOTE: ipsec only with mulicast
+    "ipsec_enc_unicast_udp_sw": {
+        "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
+    },
+
+    # NOTE: not supported
+    # "ipsec_enc_unicast_l2_sw": {
+    #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+    #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    # },
+
+    "macsec_enc_multicast_udp_sw": {
+        "master": BASE + MACSEC_INTERFACE + L3 + SW,
+        "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE,
+    },
+    "macsec_enc_multicast_l2_sw": {
+        "master": BASE + MACSEC_INTERFACE + L2 + SW,
+        "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE,
+    },
+
+    "macsec_enc_unicast_udp_sw": {
+        "master": BASE + MACSEC_INTERFACE + L3 + SW + UNICAST_MASTER,
+        "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
+    },
+    "macsec_enc_unicast_l2_sw": {
+        "master": BASE + MACSEC_INTERFACE + L2 + SW + UNICAST_MASTER,
+        "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    },
+
+    ################################ HW_TIMESTAMPING  ################################
     "no_enc_multicast_udp_hw": {
         "master": BASE + PHY_INTERFACE + L3 + HW,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE,
@@ -92,31 +145,17 @@ ptp_sec_cmds = {
         "master": BASE + PHY_INTERFACE + L2 + HW,
         "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE,
     },
-    # "wg_enc_multicast_udp_hw": { # NOTE: not supported
+
+    # NOTE: not supported
+    # "wg_enc_multicast_udp_hw": {
     #     "master": BASE + WG_INTERFACE + L3 + HW,
     #     "slave": BASE + WG_INTERFACE + L3 + HW + SLAVE,
     # },
-    # "wg_enc_multicast_udp_sw": {
-    #     "master": BASE + WG_INTERFACE + L3 + SW,
-    #     "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE,
-    # },
-    # "wg_enc_multicast_l2_hw": { # NOTE: not supported
+
+    # NOTE: not supported
+    # "wg_enc_multicast_l2_hw": {
     #     "master": BASE + WG_INTERFACE + L2 + HW,
     #     "slave": BASE + WG_INTERFACE + L2 + HW + SLAVE,
-    # },
-    # "wg_enc_multicast_l2_sw": {
-    #     "master": BASE + WG_INTERFACE + L2 + SW,
-    #     "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE,
-    # },
-
-    # TODO: figure out settings files
-    # "no_enc_unicast_udp_hw": {
-    #     "master": "ptp4l -m -f settings.cfg -i" + PHY_INTERFACE,
-    #     "slave": "ptp4l -m -i eth1 -f settings.cfg -s",
-    # },
-    # "no_enc_unicast_udp_sw": {
-    #     "master": "ptp4l -m -i eth1 -l 7 -f settings.cfg",
-    #     "slave": "ptp4l -m -i eth1 -f settings.cfg -s",
     # },
 }
 
