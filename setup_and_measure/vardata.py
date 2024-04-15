@@ -75,21 +75,22 @@ ptp4l_log_match = Ptp4lDataLogs(
 netmask = "/24"  # this netmask will be assumed for everything
 
 ptp_sec_cmds = {
-    "no_enc_multicast_udp_hw": {
-        "master": BASE + PHY_INTERFACE + L3 + HW,
-        "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE,
-    },
     "no_enc_multicast_udp_sw": {
         "master": BASE + PHY_INTERFACE + L3 + SW,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE,
     },
-    "no_enc_multicast_l2_hw": {
-        "master": BASE + PHY_INTERFACE + L2 + HW,
-        "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE,
-    },
     "no_enc_multicast_l2_sw": {
         "master": BASE + PHY_INTERFACE + L2 + SW,
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE,
+    },
+
+    "no_enc_multicast_udp_hw": {
+        "master": BASE + PHY_INTERFACE + L3 + HW,
+        "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE,
+    },
+    "no_enc_multicast_l2_hw": {
+        "master": BASE + PHY_INTERFACE + L2 + HW,
+        "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE,
     },
     # "wg_enc_multicast_udp_hw": { # NOTE: not supported
     #     "master": BASE + WG_INTERFACE + L3 + HW,

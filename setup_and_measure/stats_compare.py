@@ -13,18 +13,24 @@ class PTPCombinedPlotter(PlotUtils):
         self._PlotUtils__update(data, line_name)
 
 
-def do(directory, selected, labels_units):
+def do(directory, selected, labels_units, ts_type="all"):
 
     csv_files = [file for file in os.listdir(directory) if file.endswith('.csv')]
     if not csv_files:
         print("No CSV files found in the specified directory.")
         return
     plot_kwargs = {'linestyle':'solid'}
-    combined_plotter = PTPCombinedPlotter("combined_all",labels_units.log_data,directory, plot_kwargs)
+    combined_plotter = PTPCombinedPlotter(f"combined_ts_{ts_type}",labels_units.log_data,directory, plot_kwargs)
 
     for csv_file in csv_files:
         file_name = csv_file[:csv_file.rfind('.')]
         if file_name in selected:
+            if ts_type != "all":
+                if file_name.endswith(ts_type):
+                    pass
+                else:
+                    continue
+
             file_path = os.path.join(directory, csv_file)
 
             df = pd.read_csv(file_path, index_col=0)
