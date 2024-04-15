@@ -1,5 +1,6 @@
 import paramiko
 import time
+import os
 from scp import SCPClient
 import ptp_reader
 import sec
@@ -29,6 +30,12 @@ def main():
     slaves = ssh_conns["slave"]
     assert len(masters) == len(slaves)
     no_peers = len(masters)
+
+    if not os.path.exists(ptp_log_config.location):
+        os.makedirs(ptp_log_config.location)
+        print("made ", ptp_log_config.location)
+    else:
+        print(ptp_log_config.location, " exists")
 
     # extra logging info for master so that generators wouldn't bug -- maybe fix generators later
     for key, value in ptp_sec_cmds.items():
