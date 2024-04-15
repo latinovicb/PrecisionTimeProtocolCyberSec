@@ -108,13 +108,24 @@ ptp_sec_cmds = {
     },
 
     # NOTE: ipsec only with mulicast
-    "ipsec_enc_unicast_udp_sw": {
+    "ipsec_enc_unicast_udp_sw_tunnel": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
 
     # NOTE: not supported
     # "ipsec_enc_unicast_l2_sw": {
+    #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+    #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    # },
+
+    "ipsec_enc_unicast_udp_sw_transport": {
+        "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
+    },
+
+    # NOTE: not supported
+    # "ipsec_enc_unicast_l2_sw_transport": {
     #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
     #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
     # },

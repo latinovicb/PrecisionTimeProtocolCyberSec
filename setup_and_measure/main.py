@@ -51,44 +51,12 @@ def measure(args):
         scp_slave = SCPClient(ssh_slave.get_transport())
 
         remote_dir = masters[i].dir  # assuming that master and slave will use same remote dir
-        wireguard = sec.WireGuardSetup(
-            ssh_master,
-            scp_master,
-            ssh_slave,
-            scp_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-            WG_INTERFACE,
-            remote_dir,
-        )
-        strongswan = sec.StrongSwanSetup(
-            ssh_master,
-            scp_master,
-            ssh_slave,
-            scp_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-        )
-        macsec = sec.MacsecSetup(
-            ssh_master,
-            scp_master,
-            ssh_slave,
-            scp_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-            MACSEC_INTERFACE,
-            remote_dir,
-        )
 
-        read_ptp = ptp_reader.PtpReader(
-            ssh_master,
-            scp_master,
-            ssh_slave,
-            scp_slave,
-            ptp_sec_cmds,
-            ptp_log_config,
-            ptp4l_log_match,
-        )
+        wireguard = sec.WireGuardSetup(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE, WG_INTERFACE, remote_dir)
+        strongswan_tunl = sec.StrongSwanSetupTunnel(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE,netmask)
+        strongswan_trans = sec.StrongSwanSetupTransport(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE,netmask)
+        macsec = sec.MacsecSetup(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE, MACSEC_INTERFACE, remote_dir)
+        read_ptp = ptp_reader.PtpReader(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds, ptp_log_config, ptp4l_log_match)
 
         setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons, remote_dir)
         ###
@@ -116,14 +84,23 @@ def measure(args):
             wireguard.kill()
             assert wireguard.status is False
 
-            strongswan.kill()
-            strongswan.do()
+            strongswan_tunl.kill()
+            strongswan_tunl.do()
             if args.sw:
-                read_ptp.do("ipsec_enc_unicast_udp_sw")
+                read_ptp.do("ipsec_enc_unicast_udp_sw_tunnel")
             if args.hw:
-                read_ptp.do("ipsec_enc_unicast_udp_hw")
-            strongswan.kill()
-            assert strongswan.status is False
+                read_ptp.do("ipsec_enc_unicast_udp_hw_tunnel")
+            strongswan_tunl.kill()
+            assert strongswan_tunl.status is False
+
+            strongswan_trans.kill()
+            strongswan_trans.do()
+            if args.sw:
+                read_ptp.do("ipsec_enc_unicast_udp_sw_transport")
+            if args.hw:
+                read_ptp.do("ipsec_enc_unicast_udp_hw_transport")
+            strongswan_trans.kill()
+            assert strongswan_trans.status is False
 
             macsec.kill()
             macsec.do()

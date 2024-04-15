@@ -93,9 +93,13 @@ class WireGuardSetup(SecUtils):
 class StrongSwanSetup(SecUtils):
 
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
     ):
         super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY)
+        self.enc_mode = None
+        self.protocol_type = None
+        self.enc_proposals = None
+        self.mask = mask
 
     def do(self):
         self.status = True
@@ -117,13 +121,8 @@ class StrongSwanSetup(SecUtils):
     def __set_conf_file(self, ssh_local, shh_remote, ike_key):
         local_addr = self.interfaces[self.IFACE_PHY] + ssh_local.addr[-1]
         remote_addr = self.interfaces[self.IFACE_PHY] + shh_remote.addr[-1]
-        # tmp variables
-        enc_mode = "tunnel"
-        local_ts = local_addr[:-1] + "0/24"
+        local_ts = local_addr[:-1] + f"0{self.mask}"
         remote_ts = local_ts
-        protocol_type = "esp"
-        enc_proposals = "aes256gcm128"
-        ###
 
         file_content = f"""\
 connections {{
@@ -140,10 +139,10 @@ connections {{
         children {{
             ptp-conn {{
                 interface={self.IFACE_PHY}
-                mode={enc_mode}
+                mode={self.enc_mode}
                 local_ts={local_ts}
                 remote_ts={remote_ts}
-                {protocol_type}_proposals = {enc_proposals}
+                {self.protocol_type}_proposals = {self.enc_proposals}
             }}
         }}
     }}
@@ -176,6 +175,28 @@ secrets {{
         self._SecUtils__verify_connectivity(
             self.ssh_slave, f"{self.interfaces[self.IFACE_PHY]}{self.ssh_master.addr[-1]}"
         )
+
+# NOTE: AH protocol could be defined as seen below, but it's not really needed since AH does not really encrypt so it won't be measured
+
+
+class StrongSwanSetupTunnel(StrongSwanSetup):
+    def __init__(
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask
+    ):
+        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask)
+        self.enc_mode = "tunnel"
+        self.protocol_type = "esp"
+        self.enc_proposals = "aes128gcm8"  # same enc. algorithm as macsec
+
+
+class StrongSwanSetupTransport(StrongSwanSetup):
+    def __init__(
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask
+    ):
+        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask)
+        self.enc_mode = "transport"
+        self.protocol_type = "esp"
+        self.enc_proposals = "aes128gcm8"
 
 
 class MacsecSetup(SecUtils):
