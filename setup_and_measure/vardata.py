@@ -12,8 +12,8 @@ class SSHConn:
 @dataclass
 class PlotLogConf:
     time: int  # in s
-    buff_size: int  # after how many messages new image is generated (by default 1 seconds - 1 message)
-    location: str  # location on where the plots and plots and data will be saved on this pc
+    buff_size: int  # after how many ptp logs/messages new image is generated (by default 1 logs - 1 message)
+    location: str  # location to where the plots and plots and data will be saved on this pc
 
 
 @dataclass
@@ -22,14 +22,14 @@ class Ptp4lDataLogs:
     re_pattern: int  # regex pattern created specifically to match the values from above specified data
 
 
-# Section 1
+################################ USER_DATA ################################
 PHY_INTERFACE = " eth1 "
 WG_INTERFACE = " wg0 "
 MACSEC_INTERFACE = " macsec0 "
 REMOTE_DIR = "tmp"
 
 
-# multiple pairs of masters/slaves can be done
+# Multiple pairs of slaves & masters can be measured
 ssh_conns = {
     "master": [SSHConn("192.168.88.101","root","",REMOTE_DIR),],
     "slave": [SSHConn("192.168.88.102","root","",REMOTE_DIR),],
@@ -37,7 +37,8 @@ ssh_conns = {
 
 ptp_log_config = PlotLogConf(60,10,"/tmp/ptp_reads")
 
-# endSection
+
+################################ MEASURMENT_SPECS ################################
 
 # Section 2
 HW = " -H "
@@ -157,6 +158,6 @@ ptp_sec_cmds = {
     #     "master": BASE + WG_INTERFACE + L2 + HW,
     #     "slave": BASE + WG_INTERFACE + L2 + HW + SLAVE,
     # },
-}
 
-# endSection
+    # TODO: add rest of the cmds
+}

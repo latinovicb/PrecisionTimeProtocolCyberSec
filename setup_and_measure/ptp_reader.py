@@ -6,11 +6,6 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)  # FIXME: df._append below
 
 
-# TODO: add functions for statistics creation
-# TODO: additionally write plot data to csv -
-# so they could be compared between each other
-
-
 class PTPSinglePlotter(PlotUtils):
     def __init__(self, title, labels_units, location,plot_kwargs):
         super().__init__(title,labels_units,location,plot_kwargs)
@@ -52,6 +47,9 @@ class PtpReader():
         """
         Read lines from ptp4l output
         """
+        if mode not in self.cmds:
+            print(f"'{mode}' mode is not defined!")
+
         ptp_cmd_master = self.cmds[mode]["master"]
         ptp_cmd_slave = self.cmds[mode]["slave"]
 

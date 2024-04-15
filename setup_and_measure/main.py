@@ -1,4 +1,5 @@
 import paramiko
+import argparse
 import time
 import os
 from scp import SCPClient
@@ -25,7 +26,7 @@ WG_INTERFACE = WG_INTERFACE.strip()
 MACSEC_INTERFACE = MACSEC_INTERFACE.strip()
 
 
-def main():
+def measure(args):
     masters = ssh_conns["master"]
     slaves = ssh_conns["slave"]
     assert len(masters) == len(slaves)
@@ -93,37 +94,54 @@ def main():
         ###
 
         # each PTP mode must be defined in the vardata.py
+        if args.nenc:
+            if args.sw:
+                read_ptp.do("no_enc_multicast_udp_sw")
+                read_ptp.do("no_enc_multicast_l2_sw")
+                read_ptp.do("no_enc_unicast_udp_sw")
+                read_ptp.do("no_enc_unicast_l2_sw")
 
-        read_ptp.do("no_enc_multicast_udp_sw")
-        read_ptp.do("no_enc_multicast_l2_sw")
-        read_ptp.do("no_enc_unicast_udp_sw")
-        read_ptp.do("no_enc_unicast_l2_sw")
+            if args.hw:
+                read_ptp.do("no_enc_multicast_udp_hw")
+                read_ptp.do("no_enc_multicast_l2_hw")
+                read_ptp.do("no_enc_unicast_udp_hw")
+                read_ptp.do("no_enc_unicast_l2_hw")
 
-        wireguard.kill()
-        wireguard.do()
-        read_ptp.do("wg_enc_multicast_udp_sw")
-        read_ptp.do("wg_enc_multicast_l2_sw")
-        wireguard.kill()
-        assert wireguard.status is False
+        if args.enc:
+            wireguard.kill()
+            wireguard.do()
+            if args.sw:
+                read_ptp.do("wg_enc_multicast_udp_sw")
+                read_ptp.do("wg_enc_multicast_l2_sw")
+            wireguard.kill()
+            assert wireguard.status is False
 
-        strongswan.kill()
-        strongswan.do()
-        read_ptp.do("ipsec_enc_unicast_udp_sw")
-        strongswan.kill()
-        assert strongswan.status is False
+            strongswan.kill()
+            strongswan.do()
+            if args.sw:
+                read_ptp.do("ipsec_enc_unicast_udp_sw")
+            if args.hw:
+                read_ptp.do("ipsec_enc_unicast_udp_hw")
+            strongswan.kill()
+            assert strongswan.status is False
 
-        macsec.kill()
-        macsec.do()
-        read_ptp.do("macsec_enc_multicast_udp_sw")
-        read_ptp.do("macsec_enc_multicast_l2_sw")
-        read_ptp.do("macsec_enc_unicast_udp_sw")
-        read_ptp.do("macsec_enc_unicast_l2_sw")
-        macsec.kill()
-        assert macsec.status is False
+            macsec.kill()
+            macsec.do()
+            if args.sw:
+                read_ptp.do("macsec_enc_multicast_udp_sw")
+                read_ptp.do("macsec_enc_multicast_l2_sw")
+            if args.hw:
+                read_ptp.do("macsec_enc_unicast_udp_hw")
+                read_ptp.do("macsec_enc_unicast_l2_hw")
+            macsec.kill()
+            assert macsec.status is False
 
         stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
-        stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw")
-        stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw")
+
+        if args.hw:
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw")
+        if args.sw:
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw")
 
 #
 # def sec_set_mes(sec_obj, mes_obj):
@@ -187,6 +205,29 @@ class MySSHClient(paramiko.SSHClient):
                 yield line
         except TimeoutError:
             print(command, " done")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="analyzer_main",
+        description='TODO',
+    )
+    parser.add_argument("-a", action="store_true", help="Enables everything")
+    parser.add_argument("-sw", action="store_true", help="Enables measurement with software timestamping")
+    parser.add_argument("-hw", action="store_true", help="Enables measurement with hardware timestamping")
+    parser.add_argument("-nenc", action="store_true", help="Enables measurement with not encryption")
+    parser.add_argument("-enc", action="store_true", help="Enables encryption tools where, each works with \
+                        timestamping according to its capabilites \n \
+                        must be also used with options above")
+
+    args = parser.parse_args()
+
+    if args.a:
+        for arg in vars(args):
+            print(arg, " set to true")
+            setattr(args, arg, True)
+
+    measure(args)
 
 
 if __name__ == "__main__":
