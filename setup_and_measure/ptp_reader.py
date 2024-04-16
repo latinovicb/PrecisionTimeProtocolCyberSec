@@ -72,7 +72,7 @@ class PtpReader():
 
         count = 0
         first_indx = 0
-        plot_kwargs = {'linestyle':(0, (1, 10)), "color": "blue"}
+        plot_kwargs = {'linestyle':(0, (5, 10)), "color": "blue"}
         myPlt = PTPSinglePlotter(
             mode, self.labels_units, self.location, plot_kwargs
         )

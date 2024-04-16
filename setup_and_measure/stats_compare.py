@@ -19,7 +19,7 @@ def do(directory, selected, labels_units, ts_type="all"):
     if not csv_files:
         print("No CSV files found in the specified directory.")
         return
-    plot_kwargs = {'linestyle':'solid'}
+    plot_kwargs = {'linestyle':'dashdot'}
     combined_plotter = PTPCombinedPlotter(f"combined_ts_{ts_type}",labels_units.log_data,directory, plot_kwargs)
 
     for csv_file in csv_files:

@@ -141,14 +141,14 @@ class MySSHClient(paramiko.SSHClient):
         super().__init__()
         self.addr = addr
         self.stuck_cmd = 10  # timeout if there is not data comming from stdout -- keep it >10s just to be safe
-        self.load_system_host_keys()
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
+        # current_user = os.getenv('USER')
+        # command = f'ssh-keygen -f "/home/{current_user}/.ssh/known_hosts" -R "{addr}"'
+        # os.system(command)
+
         self.connect(addr, username=user, password=passw)
-        # try:
-        # except paramiko.ssh_exception.BadHostKeyException as e:
-        #     # assuming that .ssh is in ~
-        #     os.system(f"ssh-keygen -f '/home/bl/.ssh/known_hosts' -R '{addr}'")
+        self.run_command("mount -o remount,rw /")
 
     def __stderr_check(self, stderr):
         errors = stderr.read().decode().strip()
