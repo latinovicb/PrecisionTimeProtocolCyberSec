@@ -1,0 +1,43 @@
+diff --git a/net/core/ethtool.c b/net/core/ethtool.c
+index 7cc97f4..38814b9 100644
+--- a/net/core/ethtool.c
++++ b/net/core/ethtool.c
+@@ -2231,14 +2231,38 @@ static int ethtool_get_ts_info(struct net_device *dev, void __user *useraddr)
+ 	const struct ethtool_ops *ops = dev->ethtool_ops;
+ 	struct phy_device *phydev = dev->phydev;
+ 
++  if (phydev) {
++
++      int ops_ts_info = ops->get_ts_info
++        char net_dev_name = dev->name;
++      u32 phy_dev_id = phydev->phy_id;
++      struct phy_driver *phy_drv = phydev->drv;
++      u32 phy_drv_id = phy_drv->phy_id;
++      u32 phy_drv_features = phy_drv->features;
++      u32 phy_drv_flags = phy_drv->flags;
++      u32 phy_drv_ts_info = phy_drv->ts_info;
++
++      printk(KERN_INFO "Net device name: %s\n", net_dev_name);
++      printk(KERN_INFO "Phy device id: %lu\n", phy_dev_id);
++      printk(KERN_INFO "Phy driver device id: %lu\n", phy_drv_id);
++      printk(KERN_INFO "Phy driver device id: %lu\n", phy_drv_features );
++      printk(KERN_INFO "Phy driver device id: %lu\n", phy_drv_flags  );
++      printk(KERN_INFO "Phy driver device id: %lu\n", phy_drv_ts_info  );
++  }
++
+ 	memset(&info, 0, sizeof(info));
+ 	info.cmd = ETHTOOL_GET_TS_INFO;
+ 
++
+ 	if (phydev && phydev->drv && phydev->drv->ts_info) {
++    		printk(KERN_INFO "Branch 1: %s\n", phydev);
++
+ 		err = phydev->drv->ts_info(phydev, &info);
+ 	} else if (ops->get_ts_info) {
++    		printk(KERN_INFO "Branch 2: %s\n", phydev);
+ 		err = ops->get_ts_info(dev, &info);
+ 	} else {
++    		printk(KERN_INFO "Branch 3: %s\n", phydev);
+ 		info.so_timestamping =
+ 			SOF_TIMESTAMPING_RX_SOFTWARE |
+ 			SOF_TIMESTAMPING_SOFTWARE;
