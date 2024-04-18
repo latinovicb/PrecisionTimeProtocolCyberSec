@@ -67,6 +67,7 @@ class PlotUtils:
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
         # plt.rcParams["figure.figsize"] = [12.04, 7.68]
         plt.ion()
+        plt.yscale('log')
 
     def __update(self, data, line_name=None):
         for i in range(len(self.labels_units.keys()) - 1):

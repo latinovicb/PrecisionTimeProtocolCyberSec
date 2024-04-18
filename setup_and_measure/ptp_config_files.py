@@ -5,6 +5,7 @@ def do(ssh_master, ssh_slave, interfaces, iface, dst_dir):
     __ptp_id_config(ssh_slave,dst_dir)
     __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir)
     __ptp_unicast_master(ssh_master, dst_dir)
+    __ntp_sync_server(ssh_master, dst_dir)  # only master will need external time source
 
 
 def __ptp_id_config(ssh,dst_dir):
@@ -44,3 +45,13 @@ unicast_listen                  1
 """
 
     ssh_master.run_command("echo '" + unicast_master_file + f"' > /{dst_dir}/unicast_master.cfg")
+
+
+def __ntp_sync_server(ssh_master, dst_dir):
+
+    chrony_conf_file = """\
+server ntp.nic.cz iburst minpoll 2 prefer
+"""
+
+    ssh_master.run_command("echo '" + chrony_conf_file + f"' > /etc/chrony.conf")
+    ssh_master.run_command("systemctl restart chronyd")
