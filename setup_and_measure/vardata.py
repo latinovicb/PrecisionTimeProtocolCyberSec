@@ -35,7 +35,7 @@ ssh_conns = {
     "slave": [SSHConn("192.168.88.102","root","",REMOTE_DIR),],
 }
 
-ptp_log_config = PlotLogConf(60,10,"/tmp/ptp_reads")
+ptp_log_config = PlotLogConf(1200,50,"/tmp/ptp_reads")
 
 
 ################################ MEASURMENT_SPECS ################################
@@ -91,12 +91,13 @@ ptp_sec_cmds = {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
+
     "no_enc_unicast_l2_sw": {
         "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
     },
 
-    # NOTE: wg tested only with multicast
+    # NOTE: to run wg with unicast files must be combined
     "wg_enc_multicast_udp_sw": {
         "master": BASE + WG_INTERFACE + L3 + SW + CUSTOM_ID,
         "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + CUSTOM_ID,
@@ -107,28 +108,25 @@ ptp_sec_cmds = {
         "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + CUSTOM_ID,
     },
 
-    # NOTE: ipsec only with mulicast
     "ipsec_enc_unicast_udp_sw_tunnel": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
 
-    # NOTE: not supported
-    # "ipsec_enc_unicast_l2_sw": {
-    #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
-    #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
-    # },
+    "ipsec_enc_unicast_l2_sw_tunnel": {
+        "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    },
 
     "ipsec_enc_unicast_udp_sw_transport": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
 
-    # NOTE: not supported
-    # "ipsec_enc_unicast_l2_sw_transport": {
-    #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
-    #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
-    # },
+    "ipsec_enc_unicast_l2_sw_transport": {
+        "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    },
 
     "macsec_enc_multicast_udp_sw": {
         "master": BASE + MACSEC_INTERFACE + L3 + SW,
@@ -158,17 +156,67 @@ ptp_sec_cmds = {
         "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE,
     },
 
-    # NOTE: not supported
+    "no_enc_unicast_udp_hw": {
+        "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L3 + HW + UNICAST_SLAVE,
+    },
+
+    "no_enc_unicast_l2_hw": {
+        "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L2 + HW + UNICAST_SLAVE,
+    },
+
+    # NOTE: not supported -- wg tun interface cannnot hardware timestamp
     # "wg_enc_multicast_udp_hw": {
     #     "master": BASE + WG_INTERFACE + L3 + HW,
     #     "slave": BASE + WG_INTERFACE + L3 + HW + SLAVE,
     # },
 
-    # NOTE: not supported
+    # NOTE: not supported -- wg tun interface cannnot hardware timestamp
     # "wg_enc_multicast_l2_hw": {
     #     "master": BASE + WG_INTERFACE + L2 + HW,
     #     "slave": BASE + WG_INTERFACE + L2 + HW + SLAVE,
     # },
+
+    # NOTE: ipsec does not support multicast
+    "ipsec_enc_unicast_udp_hw_tunnel": {
+        "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
+    },
+
+    # NOTE: not supported -- unicast is based on ipv4 address communication - so it won't work with l2 transport
+    "ipsec_enc_unicast_l2_hw_tunnel": {
+        "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
+    },
+
+    "ipsec_enc_unicast_udp_hw_transport": {
+        "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
+    },
+
+    "ipsec_enc_unicast_l2_hw_transport": {
+        "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
+        "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
+    },
+
+    "macsec_enc_multicast_udp_hw": {
+        "master": BASE + MACSEC_INTERFACE + L3 + HW,
+        "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE,
+    },
+    "macsec_enc_multicast_l2_hw": {
+        "master": BASE + MACSEC_INTERFACE + L2 + HW,
+        "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE,
+    },
+
+    "macsec_enc_unicast_udp_hw": {
+        "master": BASE + MACSEC_INTERFACE + L3 + HW + UNICAST_MASTER,
+        "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
+    },
+    "macsec_enc_unicast_l2_hw": {
+        "master": BASE + MACSEC_INTERFACE + L2 + HW + UNICAST_MASTER,
+        "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
+    },
 
     # TODO: add rest of the cmds
 }

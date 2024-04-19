@@ -1,9 +1,13 @@
+import class_utils
+
 
 def do(ssh_master, ssh_slave, interfaces, iface, dst_dir):
 
+    mac_master = class_utils.SecUtils.get_mac_addr(ssh_master,iface)
+
     __ptp_id_config(ssh_master,dst_dir)
     __ptp_id_config(ssh_slave,dst_dir)
-    __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir)
+    __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir, mac_master)
     __ptp_unicast_master(ssh_master, dst_dir)
     __ntp_sync_server(ssh_master, dst_dir)  # only master will need external time source
 
@@ -22,12 +26,13 @@ clockIdentity           000000.0000.00000{last_num}
     ssh.run_command("echo '" + id_file + f"' > /{dst_dir}/ptp_clock_id.cfg")
 
 
-def __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir):
+def __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir, mac_addr):
 
     unicast_slave_file = f"""\
 [unicast_master_table]
 table_id                1
 UDPv4                   {interfaces[iface] + ssh_master.addr[-1]}
+L2                      {mac_addr}
 [eth1]
 unicast_master_table    1
 """

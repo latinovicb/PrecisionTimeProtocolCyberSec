@@ -264,10 +264,8 @@ class MacsecSetup(SecUtils):
         self._SecUtils__verify_connectivity(self.ssh_slave, macsec_addr_master)
 
     def __get_mac_info(self, ssh, iface, dst_dir):
-        iface_info = ssh.run_command(f"ip link show {iface}")
-        mac_address = re.search(r"link/ether ([\w:]+)", iface_info).group(1)
         key = ssh.run_command(f"cat {dst_dir}/private_key")
-        return mac_address, key
+        return self.get_mac_addr(ssh,iface), key
 
     def __set_mac_peer(self, ssh, peer_addr, mac, key):
         ifac_phy = self.IFACE_PHY

@@ -53,6 +53,13 @@ class SecUtils:
         final = "".join([f"{byte:02x}" for byte in random_bytes])
         return final
 
+    @staticmethod
+    def get_mac_addr(ssh, iface):
+        iface_info = ssh.run_command(f"ip link show {iface}")
+        mac_address = re.search(r"link/ether ([\w:]+)", iface_info).group(1)
+
+        return mac_address
+
 
 class PlotUtils:
     def __init__(self, title, labels_units, location, plot_kwargs):

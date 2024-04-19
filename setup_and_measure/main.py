@@ -88,8 +88,10 @@ def measure(args):
             strongswan_tunl.do()
             if args.sw:
                 read_ptp.do("ipsec_enc_unicast_udp_sw_tunnel")
+                read_ptp.do("ipsec_enc_unicast_l2_sw_tunnel")
             if args.hw:
                 read_ptp.do("ipsec_enc_unicast_udp_hw_tunnel")
+                read_ptp.do("ipsec_enc_unicast_l2_hw_tunnel")
             strongswan_tunl.kill()
             assert strongswan_tunl.status is False
 
@@ -97,8 +99,10 @@ def measure(args):
             strongswan_trans.do()
             if args.sw:
                 read_ptp.do("ipsec_enc_unicast_udp_sw_transport")
+                read_ptp.do("ipsec_enc_unicast_l2_sw_transport")
             if args.hw:
                 read_ptp.do("ipsec_enc_unicast_udp_hw_transport")
+                read_ptp.do("ipsec_enc_unicast_l2_hw_transport")
             strongswan_trans.kill()
             assert strongswan_trans.status is False
 
