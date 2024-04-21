@@ -1,4 +1,5 @@
 import re
+import pandas as pd
 import matplotlib.pyplot as plt
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
@@ -73,6 +74,9 @@ class PlotUtils:
         self.first_write = True
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
         # plt.rcParams["figure.figsize"] = [12.04, 7.68]
+
+        # doing average of averages -- THE LEN OF DATA MUST IS ALWAYS THE SAME
+        self.means = {}
         plt.ion()
         plt.yscale('log')
 
@@ -92,8 +96,18 @@ class PlotUtils:
         ax.title.set_text(name)
         ax.set(ylabel=unit)
         ax.plot(data[name], label=line_name, **self.plot_kwargs)
+        if name not in self.means:
+            self.means[name] = []  # Create a new key with an empty list as its value if it doesn't exist
+        self.means[name].append(data[name].mean())
         if line_name is not None:
             ax.legend()
+
+    def show_mean(self):
+        for i in range(len(self.means.keys())):
+            key = list(self.means.keys())[i]
+            self.axs[i].axhline(y=pd.Series(self.means[key]).mean(),color='red',linestyle='--',label=f"{key}_mean")
+            self.axs[i].legend()
+        self.__save_fig()
 
     def __save_fig(self):
         name = f"{self.location}/{self.title}"

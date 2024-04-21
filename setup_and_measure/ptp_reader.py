@@ -99,6 +99,7 @@ class PtpReader():
             )  # NOTE: probably not very resource efficient
             df = df._append(data)  # FIXME: should be changed to concat
             count += 1
+        myPlt.show_mean()
 
     def __run_sync(self, ptp_cmd_master, ptp_cmd_slave):
         """
