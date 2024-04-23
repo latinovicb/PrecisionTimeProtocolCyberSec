@@ -1,14 +1,16 @@
-import class_utils
 
 
-def do(ssh_master, ssh_slave, interfaces, iface, dst_dir):
-
-    mac_master = class_utils.SecUtils.get_mac_addr(ssh_master,iface)
-
+def do_id_only(ssh_master, ssh_slave, dst_dir):
     __ptp_id_config(ssh_master,dst_dir)
     __ptp_id_config(ssh_slave,dst_dir)
-    __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir, mac_master)
+
+
+def do_unicast(ssh_master, ssh_slave, interfaces, iface, dst_dir, mac):
+    __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir, mac)
     __ptp_unicast_master(ssh_master, dst_dir)
+
+
+def do_ntp(ssh_master, dst_dir):
     __ntp_sync_server(ssh_master, dst_dir)  # only master will need external time source
 
 
@@ -33,17 +35,21 @@ def __ptp_unicast_slave(ssh_slave, ssh_master, interfaces, iface, dst_dir, mac_a
 table_id                1
 UDPv4                   {interfaces[iface] + ssh_master.addr[-1]}
 L2                      {mac_addr}
-[eth1]
+[{iface}]
 unicast_master_table    1
 """
 
-    ssh_slave.run_command("echo '" + unicast_slave_file + f"' > /{dst_dir}/unicast_slave.cfg")
+    ssh_slave.run_command("echo '" + unicast_slave_file + f"' > /{dst_dir}/unicast_slave_{iface}.cfg")
 
 
 def __ptp_unicast_master(ssh_master, dst_dir):
+    """
+    unicast master -- will always have custom id
+    """
 
     unicast_master_file = """\
 [global]
+clockIdentity                   000000.0000.000001
 hybrid_e2e                      1
 inhibit_multicast_service       1
 unicast_listen                  1

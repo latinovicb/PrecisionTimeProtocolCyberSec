@@ -1,4 +1,5 @@
 import paramiko
+import class_utils
 import argparse
 import time
 import os
@@ -80,7 +81,10 @@ def measure(args):
             wireguard.do()
             if args.sw:
                 read_ptp.do("wg_enc_multicast_udp_sw")
-                read_ptp.do("wg_enc_multicast_l2_sw")
+                # read_ptp.do("wg_enc_multicast_l2_sw")
+
+                read_ptp.do("wg_enc_unicast_udp_sw")
+                # read_ptp.do("wg_enc_unicast_l2_sw")
             wireguard.kill()
             assert wireguard.status is False
 
@@ -111,8 +115,14 @@ def measure(args):
             if args.sw:
                 read_ptp.do("macsec_enc_multicast_udp_sw")
                 read_ptp.do("macsec_enc_multicast_l2_sw")
+
+                read_ptp.do("macsec_enc_unicast_udp_sw")  # interface must be changed config files
+                read_ptp.do("macsec_enc_unicast_l2_sw")
             if args.hw:
-                read_ptp.do("macsec_enc_unicast_udp_hw")
+                read_ptp.do("macsec_enc_multicast_udp_hw")
+                read_ptp.do("macsec_enc_multicast_l2_hw")
+
+                read_ptp.do("macsec_enc_unicast_udp_hw")  # interface must be changed in config files
                 read_ptp.do("macsec_enc_unicast_l2_hw")
             macsec.kill()
             assert macsec.status is False
@@ -121,10 +131,16 @@ def measure(args):
 
         if args.hw:
             stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="no_enc")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="wg")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="ipsec")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="macsec")
         if args.sw:
             stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw")
-
-#
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="no_enc")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="wg")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="ipsec")
+            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="macsec")
 # def sec_set_mes(sec_obj, mes_obj):
 
 
@@ -133,7 +149,14 @@ def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
     files_packages.do(ssh_slave, scp_master)
     networking.do(ssh_master,interfaces, PHY_INTERFACE, netmask)
     networking.do(ssh_slave,interfaces, PHY_INTERFACE, netmask)
-    ptp_config_files.do(ssh_master,ssh_slave, interfaces,PHY_INTERFACE, remote_dir)
+
+    ptp_config_files.do_id_only(ssh_master, ssh_slave, remote_dir)
+    ptp_config_files.do_ntp(ssh_master, remote_dir)
+
+    mac_master = class_utils.SecUtils.get_mac_addr(ssh_master, PHY_INTERFACE)
+    ptp_config_files.do_unicast(ssh_master, ssh_slave, interfaces, WG_INTERFACE, remote_dir, mac_master)  # wg
+    ptp_config_files.do_unicast(ssh_master, ssh_slave, interfaces, PHY_INTERFACE, remote_dir, mac_master)  # strongswan
+    ptp_config_files.do_unicast(ssh_master, ssh_slave, interfaces, MACSEC_INTERFACE, remote_dir, mac_master)  # macsec
 
 
 class CommandTimeout(Exception):
@@ -184,8 +207,8 @@ class MySSHClient(paramiko.SSHClient):
                 if time.time() > start_time + seconds:
                     return
                 yield line
-        except TimeoutError:
-            print(command, " done")
+        except TimeoutError as e:
+            print(command, " -- command finished ", e)
 
 
 def main():

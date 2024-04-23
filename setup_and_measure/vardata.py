@@ -35,7 +35,7 @@ ssh_conns = {
     "slave": [SSHConn("192.168.88.102","root","",REMOTE_DIR),],
 }
 
-ptp_log_config = PlotLogConf(1200,50,"/tmp/ptp_reads")
+ptp_log_config = PlotLogConf(40,10,"/tmp/ptp_reads")
 
 
 ################################ MEASURMENT_SPECS ################################
@@ -53,7 +53,9 @@ SW = " -S "
 SLAVE = " -s "
 CUSTOM_ID = f" -f /{REMOTE_DIR}/ptp_clock_id.cfg "
 UNICAST_MASTER = f" -f /{REMOTE_DIR}/unicast_master.cfg "
-UNICAST_SLAVE = f" -f /{REMOTE_DIR}/unicast_slave.cfg "
+UNICAST_SLAVE = f" -f /{REMOTE_DIR}/unicast_slave_{PHY_INTERFACE.strip()}.cfg "
+UNICAST_SLAVE_WG = f" -f /{REMOTE_DIR}/unicast_slave_{WG_INTERFACE.strip()}.cfg "
+UNICAST_SLAVE_MAC = f" -f /{REMOTE_DIR}/unicast_slave_{MACSEC_INTERFACE.strip()}.cfg "
 BASE = "ptp4l -m -i "  # this will be used always -- the following argument is interface
 
 # Interfaces used for setup & measurment
@@ -97,15 +99,24 @@ ptp_sec_cmds = {
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
     },
 
-    # NOTE: to run wg with unicast files must be combined
     "wg_enc_multicast_udp_sw": {
         "master": BASE + WG_INTERFACE + L3 + SW + CUSTOM_ID,
         "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + CUSTOM_ID,
     },
 
-    "wg_enc_multicast_l2_sw": {
+    "wg_enc_multicast_l2_sw": {  # NOTE: does not work -- tun interface has no mac
         "master": BASE + WG_INTERFACE + L2 + SW + CUSTOM_ID,
         "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + CUSTOM_ID,
+    },
+
+    "wg_enc_unicast_udp_sw": {
+        "master": BASE + WG_INTERFACE + L3 + SW + UNICAST_MASTER,
+        "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE_WG,
+    },
+
+    "wg_enc_unicast_l2_sw": {   # NOTE: does not work -- tun interface has no mac
+        "master": BASE + WG_INTERFACE + L2 + SW + UNICAST_MASTER,
+        "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_WG,
     },
 
     "ipsec_enc_unicast_udp_sw_tunnel": {
@@ -139,11 +150,11 @@ ptp_sec_cmds = {
 
     "macsec_enc_unicast_udp_sw": {
         "master": BASE + MACSEC_INTERFACE + L3 + SW + UNICAST_MASTER,
-        "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
+        "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE_MAC,
     },
     "macsec_enc_unicast_l2_sw": {
         "master": BASE + MACSEC_INTERFACE + L2 + SW + UNICAST_MASTER,
-        "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+        "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_MAC,
     },
 
     ################################ HW_TIMESTAMPING  ################################
@@ -211,11 +222,11 @@ ptp_sec_cmds = {
 
     "macsec_enc_unicast_udp_hw": {
         "master": BASE + MACSEC_INTERFACE + L3 + HW + UNICAST_MASTER,
-        "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
+        "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE_MAC,
     },
     "macsec_enc_unicast_l2_hw": {
         "master": BASE + MACSEC_INTERFACE + L2 + HW + UNICAST_MASTER,
-        "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
+        "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE_MAC,
     },
 
     # TODO: add rest of the cmds

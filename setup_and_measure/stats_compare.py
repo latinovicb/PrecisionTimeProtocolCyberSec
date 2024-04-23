@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
 from class_utils import PlotUtils
 
 
@@ -13,20 +12,26 @@ class PTPCombinedPlotter(PlotUtils):
         self._PlotUtils__update(data, line_name)
 
 
-def do(directory, selected, labels_units, ts_type="all"):
+def do(directory, selected, labels_units, ts_type="all", protocol="all"):
 
     csv_files = [file for file in os.listdir(directory) if file.endswith('.csv')]
     if not csv_files:
         print("No CSV files found in the specified directory.")
         return
     plot_kwargs = {'linestyle':'dashdot'}
-    combined_plotter = PTPCombinedPlotter(f"combined_ts_{ts_type}",labels_units.log_data,directory, plot_kwargs)
+    combined_plotter = PTPCombinedPlotter(f"combined_ts_{ts_type}_{protocol}",labels_units.log_data,directory, plot_kwargs)
 
     for csv_file in csv_files:
         file_name = csv_file[:csv_file.rfind('.')]
         if file_name in selected:
             if ts_type != "all":
-                if file_name.endswith(ts_type):
+                if ts_type in file_name:
+                    pass
+                else:
+                    continue
+
+            if protocol != "all":
+                if protocol in file_name:
                     pass
                 else:
                     continue

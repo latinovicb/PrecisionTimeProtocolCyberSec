@@ -1,6 +1,8 @@
 import re
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use("agg")
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
 
@@ -105,7 +107,8 @@ class PlotUtils:
     def show_mean(self):
         for i in range(len(self.means.keys())):
             key = list(self.means.keys())[i]
-            self.axs[i].axhline(y=pd.Series(self.means[key]).mean(),color='red',linestyle='--',label=f"{key}_mean")
+            total_mean = round(pd.Series(self.means[key]).mean(),4)  # rounded to 4 deciaml places
+            self.axs[i].axhline(y=total_mean,color='red',linestyle='--',label=f"{key}_mean: {total_mean}")
             self.axs[i].legend()
         self.__save_fig()
 
