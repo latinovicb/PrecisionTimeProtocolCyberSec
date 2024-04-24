@@ -40,4 +40,21 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
 
             df = pd.read_csv(file_path, index_col=0)
 
+            # only stabilized servo data to be compared
+            first_index_of_2 = df['servo'].idxmax()
+            df.iloc[:first_index_of_2, :-1] = float('nan')
+
+            if protocol == "all":
+                print("------------------------------------------------------------------")
+                print(file_name)
+                pd.set_option('display.max_rows', None)
+                for ptp_info in list(labels_units.log_data.keys())[1:]:
+                    data_row = df[ptp_info]
+                    mean = data_row.mean()
+                    deviation = abs((data_row - mean).mean())  # mean absolute deviation
+                    print(ptp_info)
+                    print("mean value: ", mean)
+                    print("mean absolute deviation ", deviation)
+                    print("standard deviation ", data_row.std())
+
             combined_plotter.update(df, file_name)

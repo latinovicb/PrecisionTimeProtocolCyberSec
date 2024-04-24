@@ -36,7 +36,9 @@ class PtpReader():
         self.cmds = cmds
 
         self.labels_units = label_pattern.log_data
-        self.pattern = label_pattern.re_pattern
+        self.pattern = label_pattern.re_pattern # for getting numerical values
+        self.servo_state_pattern = r"\b(s\d+)\b"
+        self.servo_states = {"s0", "s1", "s2"}
         self.labels = list(self.labels_units.keys())
 
         self.timer = log_config.time
@@ -72,7 +74,8 @@ class PtpReader():
 
         count = 0
         first_indx = 0
-        plot_kwargs = {'linestyle':(0, (5, 10)), "color": "blue"}
+        plot_style = (0, (5, 10))
+        plot_kwargs = {'linestyle': plot_style, "color": "blue"}
         myPlt = PTPSinglePlotter(
             mode, self.labels_units, self.location, plot_kwargs
         )
@@ -80,26 +83,30 @@ class PtpReader():
             columns=self.labels[1:],
         )
 
-        for data in self.__run_sync(
-            ptp_cmd_master,
-            ptp_cmd_slave,
-        ):
-            # Fill by buff to ease the load
-            if count == self.buff_size:
-                # print("Passing data to plotter\n", df)
-                myPlt.update(df)
-                first_indx += count
-                df = pd.DataFrame(
-                    columns=self.labels[1:],
-                )
-                count = 0
+        try:
+            for data in self.__run_sync(
+                ptp_cmd_master,
+                ptp_cmd_slave,
+            ):
+                # Fill by buff to ease the load
+                if count == self.buff_size:
+                    # print("Passing data to plotter\n", df)
+                    myPlt.update(df)
+                    first_indx += count
+                    df = pd.DataFrame(
+                        columns=self.labels[1:],
+                    )
+                    count = 0
 
-            data = pd.Series(
-                data, name=first_indx + count
-            )  # NOTE: probably not very resource efficient
-            df = df._append(data)  # FIXME: should be changed to concat
-            count += 1
-        myPlt.show_mean()
+                data = pd.Series(
+                    data, name=first_indx + count
+                )  # NOTE: probably not very resource efficient
+                df = df._append(data)  # FIXME: should be changed to concat
+                count += 1
+        except Exception as e:
+            raise e
+        finally:
+            myPlt.show_mean()
 
     def __run_sync(self, ptp_cmd_master, ptp_cmd_slave):
         """
@@ -109,14 +116,11 @@ class PtpReader():
             self.ssh_master.run_continous(ptp_cmd_master, self.timer),
             self.ssh_slave.run_continous(ptp_cmd_slave, self.timer),
         ):
-            # print(line_m)
-            # print(line_s)
             data = self.__parse_lines(line_s)
             log_time = 0
 
+            # log time always bigger by one
             if data:
-                # log time is always bigger by one
-                # TODO: maybe make dynamic
                 if log_time != 0:
                     assert data["ptp4l_runtime"] == log_time + 1
 
@@ -133,16 +137,22 @@ class PtpReader():
         nums = []
 
         matches = re.findall(self.pattern, line)
-        # Squash all signs TODO: error checking if maybe there are two errors next to each other
-        for i in range(len(matches)):
-            if matches[i] == "+" or matches[i] == "-":
-                matches[i + 1] = matches[i] + matches[i + 1]
-            else:
-                nums.append(float(matches[i]))
+        if servo_state := list(self.servo_states & set(matches)):
+            assert len(servo_state) == 1
+            servo_state = servo_state[0]
+            matches.remove(servo_state)
+            for i in range(len(matches)):
+                if matches[i] == "+" or matches[i] == "-":
+                    matches[i + 1] = matches[i] + matches[i + 1]
+                else:
+                    nums.append(float(matches[i]))
 
-        # Expected same number of values as existing labels
-        if len(nums) == len(self.labels):
-            for i in range(len(self.labels)):
-                tmp_dict[self.labels[i]] = nums[i]
+            nums.append(int(servo_state[-1]))
+            # Expected same number of values as existing labels
+            if len(nums) == len(self.labels):
+                for i in range(len(self.labels)):
+                    tmp_dict[self.labels[i]] = nums[i]
 
-            return tmp_dict
+                return tmp_dict
+        else:
+            print(line)

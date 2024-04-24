@@ -3,10 +3,9 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use("agg")
+plt.yscale('symlog')  # symetric log
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
-
-
 class SecUtils:
     def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY):
         self.ssh_master = ssh_master
@@ -94,10 +93,16 @@ class PlotUtils:
 
         self.__save_fig()
 
+    # # to be called just with single row series -- ax position specified explicitely
+    # def __simple_update(self, data, line_name, postiion):
+
     def __plot_next(self, data, ax, name, unit, line_name=None):
         ax.title.set_text(name)
         ax.set(ylabel=unit)
-        ax.plot(data[name], label=line_name, **self.plot_kwargs)
+        ax.scatter(data[name].index, data[name], label=line_name, **self.plot_kwargs)
+        ax.plot(data[name].index, data[name], alpha=0.7, **self.plot_kwargs)
+
+
         if name not in self.means:
             self.means[name] = []  # Create a new key with an empty list as its value if it doesn't exist
         self.means[name].append(data[name].mean())
@@ -107,7 +112,7 @@ class PlotUtils:
     def show_mean(self):
         for i in range(len(self.means.keys())):
             key = list(self.means.keys())[i]
-            total_mean = round(pd.Series(self.means[key]).mean(),4)  # rounded to 4 deciaml places
+            total_mean = round(pd.Series(self.means[key]).mean(), 4)  # rounded to 4 deciaml places
             self.axs[i].axhline(y=total_mean,color='red',linestyle='--',label=f"{key}_mean: {total_mean}")
             self.axs[i].legend()
         self.__save_fig()

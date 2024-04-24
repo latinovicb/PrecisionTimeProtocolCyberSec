@@ -35,7 +35,7 @@ ssh_conns = {
     "slave": [SSHConn("192.168.88.102","root","",REMOTE_DIR),],
 }
 
-ptp_log_config = PlotLogConf(40,10,"/tmp/ptp_reads")
+ptp_log_config = PlotLogConf(60,10,"/tmp/ptp_reads")
 
 
 ################################ MEASURMENT_SPECS ################################
@@ -72,8 +72,9 @@ ptp4l_log_match = Ptp4lDataLogs(
         "master_offset": "ns",
         "servo_freq": "ppb",
         "path_delay": "ns",
+        "servo": "state",
     },
-    r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-])"
+    r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-]|s\d+)"
 )
 
 netmask = "/24"  # this netmask will be assumed for everything
