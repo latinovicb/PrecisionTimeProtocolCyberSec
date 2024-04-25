@@ -34,10 +34,6 @@ Dir structure:
 
 Sources: 
 
-* iproute2: https://git.yoctoproject.org/poky/tree/meta/recipes-connectivity/iproute2/iproute2_6.7.0.bb
-    * commit_sha: 8c460adf731db2d699c523d0017644cc7162efe9
-* linuxptp: https://github.com/openembedded/meta-openembedded/tree/master/meta-oe/recipes-connectivity/linuxptp/linuxptp
-    * commit_sha: e12d38e91efff3f9f28fc35f9b9dc16557d5f849
-* strongswan: https://github.com/openembedded/meta-openembedded/tree/master/meta-networking/recipes-support/strongswan
-    * commit_sha: 5be2e20157f3025f9e2370933267a56fd526c58e 
-
+* iproute2: https://github.com/yoctoproject/poky/commit/2e07f1440f36d0efc304f1dbe8c1b577ce561460
+* linuxptp: https://github.com/openembedded/meta-openembedded/commit/e12d38e91efff3f9f28fc35f9b9dc16557d5f849
+* strongswan: https://github.com/openembedded/meta-openembedded/commit/5be2e20157f3025f9e2370933267a56fd526c58e
