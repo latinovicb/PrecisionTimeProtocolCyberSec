@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+import yaml
 
-
+"""
+INITIALIZATION
+"""
 @dataclass
 class SSHConn:
     addr: str
@@ -22,25 +25,37 @@ class Ptp4lDataLogs:
     re_pattern: int  # regex pattern created specifically to match the values from above specified data
 
 
-################################ USER_DATA ################################
-PHY_INTERFACE = " eth1 "
-WG_INTERFACE = " wg0 "
-MACSEC_INTERFACE = " macsec0 "
-REMOTE_DIR = "tmp"
+with open('confdata.yml', 'r') as file:
+    config_data = yaml.safe_load(file)
+
+"""
+USER_DATA
+"""
+PHY_INTERFACE = f" {config_data['interfaces']['physical']} "
+WG_INTERFACE = f" {config_data['interfaces']['wireguard']} "
+MACSEC_INTERFACE = f" {config_data['interfaces']['macsec']} "
+REMOTE_DIR = config_data['remote_directory']
 
 
 # Multiple pairs of slaves & masters can be measured
 ssh_conns = {
-    "master": [SSHConn("192.168.88.101","root","",REMOTE_DIR),],
-    "slave": [SSHConn("192.168.88.102","root","",REMOTE_DIR),],
+    "master": [SSHConn(config_data['ssh_conns']['master']['ip'],
+                       config_data['ssh_conns']['master']['username'],
+                       config_data['ssh_conns']['master']['password'], REMOTE_DIR)],
+    "slave": [SSHConn(config_data['ssh_conns']['slave']['ip'],
+                      config_data['ssh_conns']['slave']['username'],
+                      config_data['ssh_conns']['slave']['password'], REMOTE_DIR)],
 }
 
-ptp_log_config = PlotLogConf(60,10,"/tmp/ptp_reads")
+ptp_log_config = PlotLogConf(config_data['ptp_log_configuration']['measurment_time'],
+                             config_data['ptp_log_configuration']['buff_size'],
+                             config_data['ptp_log_configuration']['log_directory'],
+                             )
 
 
-################################ MEASURMENT_SPECS ################################
-
-# Section 2
+"""
+MEASURMENT_SPECS
+"""
 HW = " -H "
 SW = " -S "
 E2E = " -E "
@@ -80,7 +95,9 @@ ptp4l_log_match = Ptp4lDataLogs(
 netmask = "/24"  # this netmask will be assumed for everything
 
 ptp_sec_cmds = {
-    ################################ SW_TIMESTAMPING ################################
+
+    # SW_TIMESTAMPING
+
     "no_enc_multicast_udp_sw": {
         "master": BASE + PHY_INTERFACE + L3 + SW,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE,
@@ -158,7 +175,8 @@ ptp_sec_cmds = {
         "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_MAC,
     },
 
-    ################################ HW_TIMESTAMPING  ################################
+    # HW_TIMESTAMPING
+
     "no_enc_multicast_udp_hw": {
         "master": BASE + PHY_INTERFACE + L3 + HW,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE,
@@ -230,5 +248,5 @@ ptp_sec_cmds = {
         "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE_MAC,
     },
 
-    # TODO: add rest of the cmds
+    # TODO: consider adding more options
 }

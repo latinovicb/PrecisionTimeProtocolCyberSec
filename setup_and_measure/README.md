@@ -9,3 +9,5 @@ python setup_and_measure -h
 ```shell
 python setup_and_measure <OPTIONS>
 ```
+
+### Use `confdata.yml` file to specify configuration

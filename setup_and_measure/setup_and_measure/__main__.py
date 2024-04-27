@@ -51,7 +51,7 @@ def measure(args):
         ssh_slave = MySSHClient(slaves[i].addr, slaves[i].user, slaves[i].passw)
         scp_slave = SCPClient(ssh_slave.get_transport())
 
-        remote_dir = masters[i].dir  # assuming that master and slave will use same remote dir
+        remote_dir = masters[i].dir  # assuming that master and slave will use remote dir with the same name
 
         wireguard = sec.WireGuardSetup(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE, WG_INTERFACE, remote_dir)
         strongswan_tunl = sec.StrongSwanSetupTunnel(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE,netmask)
