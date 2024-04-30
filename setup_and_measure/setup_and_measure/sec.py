@@ -1,4 +1,4 @@
-import re
+from logger import log
 from class_utils import SecUtils
 
 
@@ -30,7 +30,7 @@ class WireGuardSetup(SecUtils):
             self.__setup_interfaces_keys(self.ssh_master)
             self.__setup_interfaces_keys(self.ssh_slave)
             self.__setup_peers()
-            print("Okay")
+            log("Okay")
         except Exception as e:
             self.kill()
             raise e
@@ -185,7 +185,7 @@ secrets {{
             "swanctl -i --child ptp-conn")
 
         if "failed" in conn_status or "Error" in conn_status:
-            print(conn_status)
+            log(conn_status)
             raise Exception
 
         self._SecUtils__verify_connectivity(
@@ -254,7 +254,7 @@ class MacsecSetup(SecUtils):
                 self.ssh_slave,
             )
             self.__setup_peers()
-            print("Okay")
+            log("Okay")
         except Exception as e:
             self.kill()
             raise e

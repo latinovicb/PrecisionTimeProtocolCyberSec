@@ -2,6 +2,7 @@ import paramiko
 import class_utils
 import argparse
 import time
+from logger import log
 import os
 from scp import SCPClient
 import ptp_reader
@@ -37,11 +38,11 @@ def measure(args):
         os.makedirs(ptp_log_config.location)
         os.makedirs(ptp_log_config.location + "/data")
         os.makedirs(ptp_log_config.location + "/plots")
-        print("made ", ptp_log_config.location)
+        log("made ", ptp_log_config.location)
     else:
-        print(ptp_log_config.location, " exists")
+        log(ptp_log_config.location, " exists")
 
-    # extra logging info for master so that generators wouldn't bug -- maybe fix generators later
+    # extra log for master so that generators wouldn't bug -- maybe fix generators later
     for key, value in ptp_sec_cmds.items():
         ptp_sec_cmds[key]["master"] += " -l 7"
 
@@ -301,13 +302,13 @@ class MySSHClient(paramiko.SSHClient):
     def __stderr_check(self, stderr):
         errors = stderr.read().decode().strip()
         if errors:
-            print(f"{self.addr} warning/err: {errors}")
+            log(f"{self.addr} warning/err: {errors}")
 
     def run_command(self, command):
         """
         run single command with timeout handler
         """
-        print(" : ", command)
+        log(" : ", command)
 
         try:  # all single execution commands have specific timeout
             stdin, stdout, stderr = self.exec_command(
@@ -315,8 +316,8 @@ class MySSHClient(paramiko.SSHClient):
             self.__stderr_check(stderr)
             return stdout.read().decode().strip()
         except TimeoutError as e:
-            print("timed out ", command)
-            print(e)
+            log("timed out ", command)
+            log(e)
 
     def run_continous(self, command, seconds):
         """
@@ -332,7 +333,7 @@ class MySSHClient(paramiko.SSHClient):
                     return
                 yield line
         except TimeoutError as e:
-            print(command, " -- command finished ", e)
+            log(command, " -- command finished ", e)
 
 
 def main():
@@ -340,33 +341,32 @@ def main():
         prog="analyzer_main",
         description="TODO",
     )
-    parser.add_argument("-a", action="store_true", help="Enables everything")
+    parser.add_argument("-a", action="store_true", help="Enable everything")
     parser.add_argument(
         "-sw",
         action="store_true",
-        help="Enables measurement with software timestamping",
+        help="Enable measurement with software timestamping",
     )
     parser.add_argument(
         "-hw",
         action="store_true",
-        help="Enables measurement with hardware timestamping",
+        help="Enable measurement with hardware timestamping",
     )
     parser.add_argument(
-        "-nenc", action="store_true", help="Enables measurement with not encryption"
+        "-nenc", action="store_true", help="Enable measurement with no encryption; \
+                timestamping options must still be specified"
     )
     parser.add_argument(
         "-enc",
-        action="store_true",
-        help="Enables encryption tools where, each works with \
-                        timestamping according to its capabilites \n \
-                        must be also used with options above",
+        action="store_true", help="Enable measurement with all encryption protocols; \
+            timestamping options must still be specified"
     )
 
     args = parser.parse_args()
 
     if args.a:
         for arg in vars(args):
-            print(arg, " set to true")
+            log(arg, " set to true")
             setattr(args, arg, True)
 
     measure(args)

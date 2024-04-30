@@ -1,4 +1,5 @@
 import os
+from logger import log
 import pandas as pd
 from class_utils import PlotUtils
 
@@ -18,7 +19,7 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
         file for file in os.listdir(directory + "/data") if file.endswith(".csv")
     ]
     if not csv_files:
-        print("No CSV files found in the specified directory.")
+        log("No CSV files found in the specified directory.")
         return
     plot_kwargs = {"linestyle": "dashdot"}
     combined_plotter = PTPCombinedPlotter(
@@ -52,19 +53,19 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
             df.iloc[:first_index_of_2, :-1] = float("nan")
 
             if protocol == "all":
-                print(
+                log(
                     "------------------------------------------------------------------"
                 )
-                print(file_name)
+                log(file_name)
                 pd.set_option("display.max_rows", None)
                 for ptp_info in list(labels_units.log_data.keys())[1:]:
                     data_row = df[ptp_info]
                     mean = data_row.mean()
                     # mean absolute deviation
                     deviation = abs((data_row - mean).mean())
-                    print(ptp_info)
-                    print("mean value: ", mean)
-                    print("mean absolute deviation ", deviation)
-                    print("standard deviation ", data_row.std())
+                    log(ptp_info)
+                    log("mean value: ", mean)
+                    log("mean absolute deviation ", deviation)
+                    log("standard deviation ", data_row.std())
 
             combined_plotter.update(df, file_name)

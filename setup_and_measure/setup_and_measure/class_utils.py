@@ -1,4 +1,5 @@
 import re
+from logger import log
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
@@ -24,13 +25,13 @@ class SecUtils:
         """
         Ping for 10 seconds
         """
-        print("pinging ", peer_addr, " from ", ssh.addr)
+        log("pinging ", peer_addr, " from ", ssh.addr)
         pattern = (
             rf"(\d+) bytes from {re.escape(peer_addr)}: icmp_seq=(\d+) ttl=(\d+) time="
         )
         matches = 0
         for reply in ssh.run_continous(f"ping {peer_addr}", 5):
-            print(reply)
+            log(reply)
             if re.match(pattern, reply):
                 matches += 1
 
@@ -49,7 +50,7 @@ class SecUtils:
             ssh.run_command(cmd)
 
     def __del_link(self, ssh, iface, dst_dir):
-        print(f"Deleting link {iface} and {dst_dir}")
+        log(f"Deleting link {iface} and {dst_dir}")
         ssh.run_command(f"rm -rf {dst_dir}")
         ssh.run_command(f"ip link del {iface}")
 
@@ -135,5 +136,5 @@ class PlotUtils:
 
     def __save_fig(self):
         name = f"{self.location}/plots/{self.title}"
-        print(f"Figure updated/saved to {name}")
+        log(f"Figure updated/saved to {name}")
         plt.savefig(name + self.fig_type)

@@ -1,3 +1,6 @@
+from logger import log
+
+
 def do(ssh, interfaces, iface_phy, mask):
     addr = ssh.addr
     ifaces = {
@@ -8,7 +11,7 @@ def do(ssh, interfaces, iface_phy, mask):
         ssh.run_command(f"ip link set {iface} up")
         if __check_addr(ssh, iface, addr, mask):
             ssh.exec_command(f"ip a a {addr}{mask} dev {iface}")
-        print(addr + mask + " is set")
+        log(addr + mask + " is set")
 
 
 def __check_addr(ssh, iface, addr, mask):

@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from logger import log
 import re
 from class_utils import PlotUtils
 import warnings
@@ -20,11 +21,11 @@ class PTPSinglePlotter(PlotUtils):
     def __save_csv(self, data):
         name = f"{self.location}/data/{self.title}.csv"
         if self.csv_first_write:
-            print(f" ... rewriting/creating file {name}")
+            log(f" ... rewriting/creating file {name}")
             data.to_csv(name, mode="w", header=True)
             self.csv_first_write = False
         else:
-            print(f" appending to file {name}")
+            log(f" appending to file {name}")
             data.to_csv(name, mode="a", header=False)
 
 
@@ -60,12 +61,12 @@ class PtpReader:
         Read lines from ptp4l output
         """
         if mode not in self.cmds:
-            print(f"'{mode}' mode is not defined!")
+            log(f"'{mode}' mode is not defined!")
 
         ptp_cmd_master = self.cmds[mode]["master"]
         ptp_cmd_slave = self.cmds[mode]["slave"]
 
-        print(
+        log(
             "Running ptp reader with the following info: \n",
             "master: ",
             ptp_cmd_master,
@@ -99,7 +100,7 @@ class PtpReader:
             ):
                 # Fill by buff to ease the load
                 if count == self.buff_size:
-                    # print("Passing data to plotter\n", df)
+                    # log("Passing data to plotter\n", df)
                     myPlt.update(df)
                     first_indx += count
                     df = pd.DataFrame(
@@ -163,4 +164,4 @@ class PtpReader:
 
                 return tmp_dict
         else:
-            print(line)
+            log(line)
