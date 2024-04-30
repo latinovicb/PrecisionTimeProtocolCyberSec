@@ -1,6 +1,8 @@
-def do(ssh, interfaces, iface_phy,mask):
+def do(ssh, interfaces, iface_phy, mask):
     addr = ssh.addr
-    ifaces = {iface_phy: f"{interfaces[iface_phy]}{addr[-1]}",}
+    ifaces = {
+        iface_phy: f"{interfaces[iface_phy]}{addr[-1]}",
+    }
 
     for iface, addr in ifaces.items():
         ssh.run_command(f"ip link set {iface} up")
@@ -10,6 +12,8 @@ def do(ssh, interfaces, iface_phy,mask):
 
 
 def __check_addr(ssh, iface, addr, mask):
-    output = ssh.run_command("ip addr show %s | grep 'inet ' | awk '{print $2}'" % format(iface))
+    output = ssh.run_command(
+        "ip addr show %s | grep 'inet ' | awk '{print $2}'" % format(iface)
+    )
     if addr + mask != output:
         return True

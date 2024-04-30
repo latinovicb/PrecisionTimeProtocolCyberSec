@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import re
 from class_utils import PlotUtils
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 class PTPSinglePlotter(PlotUtils):
-    def __init__(self, title, labels_units, location,plot_kwargs):
-        super().__init__(title,labels_units,location,plot_kwargs)
+    def __init__(self, title, labels_units, location, plot_kwargs):
+        super().__init__(title, labels_units, location, plot_kwargs)
         self.csv_first_write = True
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
 
@@ -27,8 +28,17 @@ class PTPSinglePlotter(PlotUtils):
             data.to_csv(name, mode="a", header=False)
 
 
-class PtpReader():
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, cmds, log_config, label_pattern):
+class PtpReader:
+    def __init__(
+        self,
+        ssh_master,
+        scp_master,
+        ssh_slave,
+        scp_slave,
+        cmds,
+        log_config,
+        label_pattern,
+    ):
         self.ssh_master = ssh_master
         self.scp_master = scp_master
         self.ssh_slave = ssh_slave
@@ -36,7 +46,7 @@ class PtpReader():
         self.cmds = cmds
 
         self.labels_units = label_pattern.log_data
-        self.pattern = label_pattern.re_pattern # for getting numerical values
+        self.pattern = label_pattern.re_pattern  # for getting numerical values
         self.servo_state_pattern = r"\b(s\d+)\b"
         self.servo_states = {"s0", "s1", "s2"}
         self.labels = list(self.labels_units.keys())
@@ -75,10 +85,9 @@ class PtpReader():
         count = 0
         first_indx = 0
         plot_style = (0, (5, 10))
-        plot_kwargs = {'linestyle': plot_style, "color": "blue"}
+        plot_kwargs = {"linestyle": plot_style, "color": "blue"}
         myPlt = PTPSinglePlotter(
-            mode, self.labels_units, self.location, plot_kwargs
-        )
+            mode, self.labels_units, self.location, plot_kwargs)
         df = pd.DataFrame(
             columns=self.labels[1:],
         )
@@ -99,8 +108,7 @@ class PtpReader():
                     count = 0
 
                 # NOTE: probably not very resource efficient
-                data = pd.Series(
-                    data, name=first_indx + count)
+                data = pd.Series(data, name=first_indx + count)
                 df = pd.concat([df, data.to_frame().T], axis=0)
                 count += 1
         except Exception as e:

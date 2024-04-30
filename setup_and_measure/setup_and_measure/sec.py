@@ -13,11 +13,16 @@ class WireGuardSetup(SecUtils):
         interfaces,
         IFACE_PHY,
         IFACE_WG,
-        remote_dir
+        remote_dir,
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY)
+        super().__init__(
+            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+        )
         self.IFACE_WG = IFACE_WG
-        self.dst_dir = f"/{remote_dir}/{IFACE_WG}"  # just a tmp dir for wireguard purposes
+        self.dst_dir = (
+            # just a tmp dir for wireguard purposes
+            f"/{remote_dir}/{IFACE_WG}"
+        )
 
     def do(self):
         self.status = True
@@ -46,12 +51,15 @@ class WireGuardSetup(SecUtils):
             "ip link set dev {iface} multicast on",
             "ip a a {addr_virt}/24 dev {iface}",
         )
-        self._SecUtils__generic_cmds(wg_set_comms, ssh, self.IFACE_WG, do_format=True)
+        self._SecUtils__generic_cmds(
+            wg_set_comms, ssh, self.IFACE_WG, do_format=True)
         # cmds, ssh, iface=None, interfaces=None, dst_dir=None, do_format=True
 
     def __setup_peers(self):
-        pub_master, port_master = self.__get_wg_info(self.ssh_master, self.IFACE_WG)
-        pub_slave, port_slave = self.__get_wg_info(self.ssh_slave, self.IFACE_WG)
+        pub_master, port_master = self.__get_wg_info(
+            self.ssh_master, self.IFACE_WG)
+        pub_slave, port_slave = self.__get_wg_info(
+            self.ssh_slave, self.IFACE_WG)
 
         wg_addr_master = self.__set_wg_peer(
             self.ssh_slave,
@@ -95,7 +103,9 @@ class StrongSwanSetup(SecUtils):
     def __init__(
         self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY)
+        super().__init__(
+            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+        )
         self.enc_mode = None
         self.protocol_type = None
         self.enc_proposals = None
@@ -105,8 +115,16 @@ class StrongSwanSetup(SecUtils):
         self.status = True
         try:
             ike_key = self._SecUtils__gen_urandom_key()
-            self.__set_conf_file(self.ssh_master,self.ssh_slave,ike_key,)
-            self.__set_conf_file(self.ssh_slave,self.ssh_master,ike_key,)
+            self.__set_conf_file(
+                self.ssh_master,
+                self.ssh_slave,
+                ike_key,
+            )
+            self.__set_conf_file(
+                self.ssh_slave,
+                self.ssh_master,
+                ike_key,
+            )
             self.__setup_peers()
 
         except Exception as e:
@@ -163,27 +181,33 @@ secrets {{
         self._SecUtils__generic_cmds(comms, ssh_local, do_format=False)
 
     def __setup_peers(self):
-        conn_status = self.ssh_master.run_command("swanctl -i --child ptp-conn")
+        conn_status = self.ssh_master.run_command(
+            "swanctl -i --child ptp-conn")
 
         if "failed" in conn_status or "Error" in conn_status:
             print(conn_status)
             raise Exception
 
         self._SecUtils__verify_connectivity(
-            self.ssh_master, f"{self.interfaces[self.IFACE_PHY]}{self.ssh_slave.addr[-1]}"
+            self.ssh_master,
+            f"{self.interfaces[self.IFACE_PHY]}{self.ssh_slave.addr[-1]}",
         )
         self._SecUtils__verify_connectivity(
-            self.ssh_slave, f"{self.interfaces[self.IFACE_PHY]}{self.ssh_master.addr[-1]}"
+            self.ssh_slave,
+            f"{self.interfaces[self.IFACE_PHY]}{self.ssh_master.addr[-1]}",
         )
+
 
 # NOTE: AH protocol could be defined as seen below, but it's not really needed since AH does not really encrypt so it won't be measured
 
 
 class StrongSwanSetupTunnel(StrongSwanSetup):
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask)
+        super().__init__(
+            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+        )
         self.enc_mode = "tunnel"
         self.protocol_type = "esp"
         self.enc_proposals = "aes128gcm8"  # same enc. algorithm as macsec
@@ -191,9 +215,11 @@ class StrongSwanSetupTunnel(StrongSwanSetup):
 
 class StrongSwanSetupTransport(StrongSwanSetup):
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY,mask)
+        super().__init__(
+            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+        )
         self.enc_mode = "transport"
         self.protocol_type = "esp"
         self.enc_proposals = "aes128gcm8"
@@ -210,17 +236,23 @@ class MacsecSetup(SecUtils):
         interfaces,
         IFACE_PHY,
         IFACE_MACSEC,
-        remote_dir
+        remote_dir,
     ):
-        super().__init__(ssh_master, scp_master, ssh_slave, scp_slave, interfaces,IFACE_PHY)
+        super().__init__(
+            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+        )
         self.IFACE_MACSEC = IFACE_MACSEC
         self.dst_dir = f"/{remote_dir}/{IFACE_MACSEC}"
 
     def do(self):
         self.status = True
         try:
-            self.__setup_interfaces_keys(self.ssh_master,)
-            self.__setup_interfaces_keys(self.ssh_slave,)
+            self.__setup_interfaces_keys(
+                self.ssh_master,
+            )
+            self.__setup_interfaces_keys(
+                self.ssh_slave,
+            )
             self.__setup_peers()
             print("Okay")
         except Exception as e:
@@ -229,8 +261,10 @@ class MacsecSetup(SecUtils):
 
     def kill(self):
         self.status = False
-        self._SecUtils__del_link(self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
-        self._SecUtils__del_link(self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
+        self._SecUtils__del_link(
+            self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
+        self._SecUtils__del_link(
+            self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
 
     def __setup_interfaces_keys(self, ssh):
         macsec_set_comms = (
@@ -241,11 +275,17 @@ class MacsecSetup(SecUtils):
             "ip a a {addr_virt}/24 dev {iface}",
         )
 
-        self._SecUtils__generic_cmds(macsec_set_comms, ssh, self.IFACE_MACSEC, do_format=True)
+        self._SecUtils__generic_cmds(
+            macsec_set_comms, ssh, self.IFACE_MACSEC, do_format=True
+        )
 
     def __setup_peers(self):
-        mac_master, key_master = self.__get_mac_info(self.ssh_master, self.IFACE_MACSEC, self.dst_dir)
-        mac_slave, key_slave = self.__get_mac_info(self.ssh_slave, self.IFACE_MACSEC, self.dst_dir)
+        mac_master, key_master = self.__get_mac_info(
+            self.ssh_master, self.IFACE_MACSEC, self.dst_dir
+        )
+        mac_slave, key_slave = self.__get_mac_info(
+            self.ssh_slave, self.IFACE_MACSEC, self.dst_dir
+        )
 
         macsec_addr_master = self.__set_mac_peer(
             self.ssh_slave,
@@ -265,7 +305,7 @@ class MacsecSetup(SecUtils):
 
     def __get_mac_info(self, ssh, iface, dst_dir):
         key = ssh.run_command(f"cat {dst_dir}/private_key")
-        return self.get_mac_addr(ssh,iface), key
+        return self.get_mac_addr(ssh, iface), key
 
     def __set_mac_peer(self, ssh, peer_addr, mac, key):
         ifac_phy = self.IFACE_PHY
@@ -276,7 +316,9 @@ class MacsecSetup(SecUtils):
         }
 
         ssh.run_command(f"ip macsec add macsec0 rx address {mac} port 1")
-        ssh.run_command(f"ip macsec add macsec0 rx address {mac} port 1 sa 0 pn 100 on key 02 {key}")
+        ssh.run_command(
+            f"ip macsec add macsec0 rx address {mac} port 1 sa 0 pn 100 on key 02 {key}"
+        )
         ssh.run_command(f"ip link set dev {ifac_macsec} up")
 
         return ifaces[ifac_macsec]

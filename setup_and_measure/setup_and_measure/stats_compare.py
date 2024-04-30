@@ -14,15 +14,22 @@ class PTPCombinedPlotter(PlotUtils):
 
 def do(directory, selected, labels_units, ts_type="all", protocol="all"):
 
-    csv_files = [file for file in os.listdir(directory + "/data") if file.endswith('.csv')]
+    csv_files = [
+        file for file in os.listdir(directory + "/data") if file.endswith(".csv")
+    ]
     if not csv_files:
         print("No CSV files found in the specified directory.")
         return
-    plot_kwargs = {'linestyle':'dashdot'}
-    combined_plotter = PTPCombinedPlotter(f"combined_ts_{ts_type}_{protocol}",labels_units.log_data,directory, plot_kwargs)
+    plot_kwargs = {"linestyle": "dashdot"}
+    combined_plotter = PTPCombinedPlotter(
+        f"combined_ts_{ts_type}_{protocol}",
+        labels_units.log_data,
+        directory,
+        plot_kwargs,
+    )
 
     for csv_file in csv_files:
-        file_name = csv_file[:csv_file.rfind('.')]
+        file_name = csv_file[: csv_file.rfind(".")]
         if file_name in selected:
             if ts_type != "all":
                 if ts_type in file_name:
@@ -36,22 +43,25 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
                 else:
                     continue
 
-            file_path = os.path.join(directory+ "/data", csv_file)
+            file_path = os.path.join(directory + "/data", csv_file)
 
             df = pd.read_csv(file_path, index_col=0)
 
             # only stabilized servo data to be compared
-            first_index_of_2 = df['servo'].idxmax()
-            df.iloc[:first_index_of_2, :-1] = float('nan')
+            first_index_of_2 = df["servo"].idxmax()
+            df.iloc[:first_index_of_2, :-1] = float("nan")
 
             if protocol == "all":
-                print("------------------------------------------------------------------")
+                print(
+                    "------------------------------------------------------------------"
+                )
                 print(file_name)
-                pd.set_option('display.max_rows', None)
+                pd.set_option("display.max_rows", None)
                 for ptp_info in list(labels_units.log_data.keys())[1:]:
                     data_row = df[ptp_info]
                     mean = data_row.mean()
-                    deviation = abs((data_row - mean).mean())  # mean absolute deviation
+                    # mean absolute deviation
+                    deviation = abs((data_row - mean).mean())
                     print(ptp_info)
                     print("mean value: ", mean)
                     print("mean absolute deviation ", deviation)

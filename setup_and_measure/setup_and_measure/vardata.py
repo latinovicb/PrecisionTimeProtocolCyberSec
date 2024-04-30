@@ -4,6 +4,8 @@ import yaml
 """
 INITIALIZATION
 """
+
+
 @dataclass
 class SSHConn:
     addr: str
@@ -15,17 +17,21 @@ class SSHConn:
 @dataclass
 class PlotLogConf:
     time: int  # in s
-    buff_size: int  # after how many ptp logs/messages new image is generated (by default 1 logs - 1 message)
-    location: str  # location to where the plots and plots and data will be saved on this pc
+    # after how many ptp logs/messages new image is generated (by default 1 logs - 1 message)
+    buff_size: int
+    location: (
+        str  # location to where the plots and plots and data will be saved on this pc
+    )
 
 
 @dataclass
 class Ptp4lDataLogs:
     log_data: dict  # log data provided by ptp4l
-    re_pattern: int  # regex pattern created specifically to match the values from above specified data
+    # regex pattern created specifically to match the values from above specified data
+    re_pattern: int
 
 
-with open('confdata.yml', 'r') as file:
+with open("confdata.yml", "r") as file:
     config_data = yaml.safe_load(file)
 
 """
@@ -34,23 +40,34 @@ USER_DATA
 PHY_INTERFACE = f" {config_data['interfaces']['physical']} "
 WG_INTERFACE = f" {config_data['interfaces']['wireguard']} "
 MACSEC_INTERFACE = f" {config_data['interfaces']['macsec']} "
-REMOTE_DIR = config_data['remote_directory']
+REMOTE_DIR = config_data["remote_directory"]
 
 
 # Multiple pairs of slaves & masters can be measured
 ssh_conns = {
-    "master": [SSHConn(config_data['ssh_conns']['master']['ip'],
-                       config_data['ssh_conns']['master']['username'],
-                       config_data['ssh_conns']['master']['password'], REMOTE_DIR)],
-    "slave": [SSHConn(config_data['ssh_conns']['slave']['ip'],
-                      config_data['ssh_conns']['slave']['username'],
-                      config_data['ssh_conns']['slave']['password'], REMOTE_DIR)],
+    "master": [
+        SSHConn(
+            config_data["ssh_conns"]["master"]["ip"],
+            config_data["ssh_conns"]["master"]["username"],
+            config_data["ssh_conns"]["master"]["password"],
+            REMOTE_DIR,
+        )
+    ],
+    "slave": [
+        SSHConn(
+            config_data["ssh_conns"]["slave"]["ip"],
+            config_data["ssh_conns"]["slave"]["username"],
+            config_data["ssh_conns"]["slave"]["password"],
+            REMOTE_DIR,
+        )
+    ],
 }
 
-ptp_log_config = PlotLogConf(config_data['ptp_log_configuration']['measurment_time'],
-                             config_data['ptp_log_configuration']['buff_size'],
-                             config_data['ptp_log_configuration']['log_directory'],
-                             )
+ptp_log_config = PlotLogConf(
+    config_data["ptp_log_configuration"]["measurment_time"],
+    config_data["ptp_log_configuration"]["buff_size"],
+    config_data["ptp_log_configuration"]["log_directory"],
+)
 
 
 """
@@ -89,15 +106,13 @@ ptp4l_log_match = Ptp4lDataLogs(
         "path_delay": "ns",
         "servo": "state",
     },
-    r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-]|s\d+)"
+    r"(?:\b[+\-]?\d+(?:\.\d+)?\b\s*(?![-+])|[+\-]|s\d+)",
 )
 
 netmask = "/24"  # this netmask will be assumed for everything
 
 ptp_sec_cmds = {
-
     # SW_TIMESTAMPING
-
     "no_enc_multicast_udp_sw": {
         "master": BASE + PHY_INTERFACE + L3 + SW,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE,
@@ -106,57 +121,46 @@ ptp_sec_cmds = {
         "master": BASE + PHY_INTERFACE + L2 + SW,
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE,
     },
-
     "no_enc_unicast_udp_sw": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
-
     "no_enc_unicast_l2_sw": {
         "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
     },
-
     "wg_enc_multicast_udp_sw": {
         "master": BASE + WG_INTERFACE + L3 + SW + CUSTOM_ID,
         "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + CUSTOM_ID,
     },
-
     "wg_enc_multicast_l2_sw": {  # NOTE: does not work -- tun interface has no mac
         "master": BASE + WG_INTERFACE + L2 + SW + CUSTOM_ID,
         "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + CUSTOM_ID,
     },
-
     "wg_enc_unicast_udp_sw": {
         "master": BASE + WG_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE_WG,
     },
-
-    "wg_enc_unicast_l2_sw": {   # NOTE: does not work -- tun interface has no mac
+    "wg_enc_unicast_l2_sw": {  # NOTE: does not work -- tun interface has no mac
         "master": BASE + WG_INTERFACE + L2 + SW + UNICAST_MASTER,
         "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_WG,
     },
-
     "ipsec_enc_unicast_udp_sw_tunnel": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
-
     "ipsec_enc_unicast_l2_sw_tunnel": {
         "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
     },
-
     "ipsec_enc_unicast_udp_sw_transport": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
-
     "ipsec_enc_unicast_l2_sw_transport": {
         "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
     },
-
     "macsec_enc_multicast_udp_sw": {
         "master": BASE + MACSEC_INTERFACE + L3 + SW,
         "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE,
@@ -165,7 +169,6 @@ ptp_sec_cmds = {
         "master": BASE + MACSEC_INTERFACE + L2 + SW,
         "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE,
     },
-
     "macsec_enc_unicast_udp_sw": {
         "master": BASE + MACSEC_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE_MAC,
@@ -174,9 +177,7 @@ ptp_sec_cmds = {
         "master": BASE + MACSEC_INTERFACE + L2 + SW + UNICAST_MASTER,
         "slave": BASE + MACSEC_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_MAC,
     },
-
     # HW_TIMESTAMPING
-
     "no_enc_multicast_udp_hw": {
         "master": BASE + PHY_INTERFACE + L3 + HW,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE,
@@ -185,51 +186,42 @@ ptp_sec_cmds = {
         "master": BASE + PHY_INTERFACE + L2 + HW,
         "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE,
     },
-
     "no_enc_unicast_udp_hw": {
         "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + HW + UNICAST_SLAVE,
     },
-
     "no_enc_unicast_l2_hw": {
         "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + HW + UNICAST_SLAVE,
     },
-
     # NOTE: not supported -- wg tun interface cannnot hardware timestamp
     # "wg_enc_multicast_udp_hw": {
     #     "master": BASE + WG_INTERFACE + L3 + HW,
     #     "slave": BASE + WG_INTERFACE + L3 + HW + SLAVE,
     # },
-
     # NOTE: not supported -- wg tun interface cannnot hardware timestamp
     # "wg_enc_multicast_l2_hw": {
     #     "master": BASE + WG_INTERFACE + L2 + HW,
     #     "slave": BASE + WG_INTERFACE + L2 + HW + SLAVE,
     # },
-
     # NOTE: ipsec does not support multicast
     "ipsec_enc_unicast_udp_hw_tunnel": {
         "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
     },
-
     # NOTE: not supported -- unicast is based on ipv4 address communication - so it won't work with l2 transport
     "ipsec_enc_unicast_l2_hw_tunnel": {
         "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
     },
-
     "ipsec_enc_unicast_udp_hw_transport": {
         "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
     },
-
     "ipsec_enc_unicast_l2_hw_transport": {
         "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
     },
-
     "macsec_enc_multicast_udp_hw": {
         "master": BASE + MACSEC_INTERFACE + L3 + HW,
         "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE,
@@ -238,7 +230,6 @@ ptp_sec_cmds = {
         "master": BASE + MACSEC_INTERFACE + L2 + HW,
         "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE,
     },
-
     "macsec_enc_unicast_udp_hw": {
         "master": BASE + MACSEC_INTERFACE + L3 + HW + UNICAST_MASTER,
         "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE_MAC,
@@ -247,6 +238,5 @@ ptp_sec_cmds = {
         "master": BASE + MACSEC_INTERFACE + L2 + HW + UNICAST_MASTER,
         "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE_MAC,
     },
-
     # TODO: consider adding more options
 }

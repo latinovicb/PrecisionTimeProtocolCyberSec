@@ -1,8 +1,6 @@
-
-
 def do_id_only(ssh_master, ssh_slave, dst_dir):
-    __ptp_id_config(ssh_master,dst_dir)
-    __ptp_id_config(ssh_slave,dst_dir)
+    __ptp_id_config(ssh_master, dst_dir)
+    __ptp_id_config(ssh_slave, dst_dir)
 
 
 def do_unicast(ssh_master, ssh_slave, interfaces, iface, dst_dir, mac):
@@ -11,10 +9,11 @@ def do_unicast(ssh_master, ssh_slave, interfaces, iface, dst_dir, mac):
 
 
 def do_ntp(ssh_master, dst_dir):
-    __ntp_sync_server(ssh_master, dst_dir)  # only master will need external time source
+    # only master will need external time source
+    __ntp_sync_server(ssh_master, dst_dir)
 
 
-def __ptp_id_config(ssh,dst_dir):
+def __ptp_id_config(ssh, dst_dir):
     """
     needed just for wireguard - can be used anywhere
     """
@@ -39,7 +38,10 @@ L2                      {mac_addr}
 unicast_master_table    1
 """
 
-    ssh_slave.run_command("echo '" + unicast_slave_file + f"' > /{dst_dir}/unicast_slave_{iface}.cfg")
+    ssh_slave.run_command(
+        "echo '" + unicast_slave_file +
+        f"' > /{dst_dir}/unicast_slave_{iface}.cfg"
+    )
 
 
 def __ptp_unicast_master(ssh_master, dst_dir):
@@ -55,7 +57,9 @@ inhibit_multicast_service       1
 unicast_listen                  1
 """
 
-    ssh_master.run_command("echo '" + unicast_master_file + f"' > /{dst_dir}/unicast_master.cfg")
+    ssh_master.run_command(
+        "echo '" + unicast_master_file + f"' > /{dst_dir}/unicast_master.cfg"
+    )
 
 
 def __ntp_sync_server(ssh_master, dst_dir):
@@ -64,5 +68,6 @@ def __ntp_sync_server(ssh_master, dst_dir):
 server ntp.nic.cz iburst minpoll 2 prefer
 """
 
-    ssh_master.run_command("echo '" + chrony_conf_file + f"' > /etc/chrony.conf")
+    ssh_master.run_command(
+        "echo '" + chrony_conf_file + f"' > /etc/chrony.conf")
     ssh_master.run_command("systemctl restart chronyd")

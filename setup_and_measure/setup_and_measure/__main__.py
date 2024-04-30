@@ -47,21 +47,68 @@ def measure(args):
 
     for i in range(no_peers):
         # objects
-        ssh_master = MySSHClient(masters[i].addr, masters[i].user, masters[i].passw)
+        ssh_master = MySSHClient(
+            masters[i].addr, masters[i].user, masters[i].passw)
         scp_master = SCPClient(ssh_master.get_transport())
 
-        ssh_slave = MySSHClient(slaves[i].addr, slaves[i].user, slaves[i].passw)
+        ssh_slave = MySSHClient(
+            slaves[i].addr, slaves[i].user, slaves[i].passw)
         scp_slave = SCPClient(ssh_slave.get_transport())
 
-        remote_dir = masters[i].dir  # assuming that master and slave will use remote dir with the same name
+        remote_dir = masters[
+            i
+        ].dir  # assuming that master and slave will use remote dir with the same name
 
-        wireguard = sec.WireGuardSetup(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE, WG_INTERFACE, remote_dir)
-        strongswan_tunl = sec.StrongSwanSetupTunnel(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE,netmask)
-        strongswan_trans = sec.StrongSwanSetupTransport(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE,netmask)
-        macsec = sec.MacsecSetup(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cons, PHY_INTERFACE, MACSEC_INTERFACE, remote_dir)
-        read_ptp = ptp_reader.PtpReader(ssh_master, scp_master, ssh_slave, scp_slave, ptp_sec_cmds, ptp_log_config, ptp4l_log_match)
+        wireguard = sec.WireGuardSetup(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
+            WG_INTERFACE,
+            remote_dir,
+        )
+        strongswan_tunl = sec.StrongSwanSetupTunnel(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
+            netmask,
+        )
+        strongswan_trans = sec.StrongSwanSetupTransport(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
+            netmask,
+        )
+        macsec = sec.MacsecSetup(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cons,
+            PHY_INTERFACE,
+            MACSEC_INTERFACE,
+            remote_dir,
+        )
+        read_ptp = ptp_reader.PtpReader(
+            ssh_master,
+            scp_master,
+            ssh_slave,
+            scp_slave,
+            ptp_sec_cmds,
+            ptp_log_config,
+            ptp4l_log_match,
+        )
 
-        setup(ssh_master, ssh_slave, scp_master, scp_slave, ptp_sec_cons, remote_dir)
+        setup(ssh_master, ssh_slave, scp_master,
+              scp_slave, ptp_sec_cons, remote_dir)
         ###
 
         # each PTP mode must be defined in the vardata.py
@@ -118,47 +165,118 @@ def measure(args):
                 read_ptp.do("macsec_enc_multicast_udp_sw")
                 read_ptp.do("macsec_enc_multicast_l2_sw")
 
-                read_ptp.do("macsec_enc_unicast_udp_sw")  # interface must be changed config files
+                read_ptp.do(
+                    "macsec_enc_unicast_udp_sw"
+                )  # interface must be changed config files
                 read_ptp.do("macsec_enc_unicast_l2_sw")
             if args.hw:
                 read_ptp.do("macsec_enc_multicast_udp_hw")
                 read_ptp.do("macsec_enc_multicast_l2_hw")
 
-                read_ptp.do("macsec_enc_unicast_udp_hw")  # interface must be changed in config files
+                read_ptp.do(
+                    "macsec_enc_unicast_udp_hw"
+                )  # interface must be changed in config files
                 read_ptp.do("macsec_enc_unicast_l2_hw")
             macsec.kill()
             assert macsec.status is False
 
-        stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
+        stats_compare.do(ptp_log_config.location,
+                         ptp_sec_cmds.keys(), ptp4l_log_match)
 
         if args.hw:
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="no_enc")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="wg")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="ipsec")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="hw", protocol="macsec")
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="hw",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="hw",
+                protocol="no_enc",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="hw",
+                protocol="wg",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="hw",
+                protocol="ipsec",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="hw",
+                protocol="macsec",
+            )
         if args.sw:
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="no_enc")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="wg")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="ipsec")
-            stats_compare.do(ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match, ts_type="sw", protocol="macsec")
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="sw",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="sw",
+                protocol="no_enc",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="sw",
+                protocol="wg",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="sw",
+                protocol="ipsec",
+            )
+            stats_compare.do(
+                ptp_log_config.location,
+                ptp_sec_cmds.keys(),
+                ptp4l_log_match,
+                ts_type="sw",
+                protocol="macsec",
+            )
+
+
 # def sec_set_mes(sec_obj, mes_obj):
 
 
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
     files_packages.do(ssh_master, scp_master)
     files_packages.do(ssh_slave, scp_master)
-    networking.do(ssh_master,interfaces, PHY_INTERFACE, netmask)
-    networking.do(ssh_slave,interfaces, PHY_INTERFACE, netmask)
+    networking.do(ssh_master, interfaces, PHY_INTERFACE, netmask)
+    networking.do(ssh_slave, interfaces, PHY_INTERFACE, netmask)
 
     ptp_config_files.do_id_only(ssh_master, ssh_slave, remote_dir)
     ptp_config_files.do_ntp(ssh_master, remote_dir)
 
     mac_master = class_utils.SecUtils.get_mac_addr(ssh_master, PHY_INTERFACE)
-    ptp_config_files.do_unicast(ssh_master, ssh_slave, interfaces, WG_INTERFACE, remote_dir, mac_master)  # wg
-    ptp_config_files.do_unicast(ssh_master, ssh_slave, interfaces, PHY_INTERFACE, remote_dir, mac_master)  # strongswan
-    ptp_config_files.do_unicast(ssh_master, ssh_slave, interfaces, MACSEC_INTERFACE, remote_dir, mac_master)  # macsec
+    ptp_config_files.do_unicast(
+        ssh_master, ssh_slave, interfaces, WG_INTERFACE, remote_dir, mac_master
+    )  # wg
+    ptp_config_files.do_unicast(
+        ssh_master, ssh_slave, interfaces, PHY_INTERFACE, remote_dir, mac_master
+    )  # strongswan
+    ptp_config_files.do_unicast(
+        ssh_master, ssh_slave, interfaces, MACSEC_INTERFACE, remote_dir, mac_master
+    )  # macsec
 
 
 class CommandTimeout(Exception):
@@ -169,7 +287,8 @@ class MySSHClient(paramiko.SSHClient):
     def __init__(self, addr, user, passw):
         super().__init__()
         self.addr = addr
-        self.stuck_cmd = 10  # timeout if there is not data comming from stdout -- keep it >10s just to be safe
+        # timeout if there is not data comming from stdout -- keep it >10s just to be safe
+        self.stuck_cmd = 10
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         # current_user = os.getenv('USER')
@@ -191,7 +310,8 @@ class MySSHClient(paramiko.SSHClient):
         print(" : ", command)
 
         try:  # all single execution commands have specific timeout
-            stdin, stdout, stderr = self.exec_command(command, timeout=self.stuck_cmd)
+            stdin, stdout, stderr = self.exec_command(
+                command, timeout=self.stuck_cmd)
             self.__stderr_check(stderr)
             return stdout.read().decode().strip()
         except TimeoutError as e:
@@ -203,7 +323,9 @@ class MySSHClient(paramiko.SSHClient):
         to be used if long outputs are expected - generator with timer
         """
         start_time = time.time()
-        stdin, stdout, stderr = self.exec_command(command, get_pty=True, timeout=self.stuck_cmd)
+        stdin, stdout, stderr = self.exec_command(
+            command, get_pty=True, timeout=self.stuck_cmd
+        )
         try:
             for line in iter(stdout.readline, ""):
                 if time.time() > start_time + seconds:
@@ -216,15 +338,29 @@ class MySSHClient(paramiko.SSHClient):
 def main():
     parser = argparse.ArgumentParser(
         prog="analyzer_main",
-        description='TODO',
+        description="TODO",
     )
     parser.add_argument("-a", action="store_true", help="Enables everything")
-    parser.add_argument("-sw", action="store_true", help="Enables measurement with software timestamping")
-    parser.add_argument("-hw", action="store_true", help="Enables measurement with hardware timestamping")
-    parser.add_argument("-nenc", action="store_true", help="Enables measurement with not encryption")
-    parser.add_argument("-enc", action="store_true", help="Enables encryption tools where, each works with \
+    parser.add_argument(
+        "-sw",
+        action="store_true",
+        help="Enables measurement with software timestamping",
+    )
+    parser.add_argument(
+        "-hw",
+        action="store_true",
+        help="Enables measurement with hardware timestamping",
+    )
+    parser.add_argument(
+        "-nenc", action="store_true", help="Enables measurement with not encryption"
+    )
+    parser.add_argument(
+        "-enc",
+        action="store_true",
+        help="Enables encryption tools where, each works with \
                         timestamping according to its capabilites \n \
-                        must be also used with options above")
+                        must be also used with options above",
+    )
 
     args = parser.parse_args()
 

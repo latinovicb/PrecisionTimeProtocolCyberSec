@@ -2,12 +2,16 @@ import re
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+
 matplotlib.use("agg")
-plt.yscale('symlog')  # symetric log
+plt.yscale("symlog")  # symetric log
+
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
 class SecUtils:
-    def __init__(self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY):
+    def __init__(
+        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+    ):
         self.ssh_master = ssh_master
         self.scp_master = scp_master
         self.ssh_slave = ssh_slave
@@ -21,7 +25,9 @@ class SecUtils:
         Ping for 10 seconds
         """
         print("pinging ", peer_addr, " from ", ssh.addr)
-        pattern = rf"(\d+) bytes from {re.escape(peer_addr)}: icmp_seq=(\d+) ttl=(\d+) time="
+        pattern = (
+            rf"(\d+) bytes from {re.escape(peer_addr)}: icmp_seq=(\d+) ttl=(\d+) time="
+        )
         matches = 0
         for reply in ssh.run_continous(f"ping {peer_addr}", 5):
             print(reply)
@@ -30,9 +36,7 @@ class SecUtils:
 
         assert matches != 0
 
-    def __generic_cmds(
-        self, cmds, ssh, iface=None, do_format=False
-    ):
+    def __generic_cmds(self, cmds, ssh, iface=None, do_format=False):
         """
         Generic commands executed separately for each interface -- with additional parsing
         """
@@ -40,7 +44,8 @@ class SecUtils:
         for cmd in cmds:
             if do_format:
                 addr_virt = self.interfaces[iface] + ssh.addr[-1]
-                cmd = cmd.format(iface=iface, addr_virt=addr_virt, dst_dir=self.dst_dir)
+                cmd = cmd.format(
+                    iface=iface, addr_virt=addr_virt, dst_dir=self.dst_dir)
             ssh.run_command(cmd)
 
     def __del_link(self, ssh, iface, dst_dir):
@@ -70,7 +75,9 @@ class PlotUtils:
         self.labels_units = labels_units
         self.plot_kwargs = plot_kwargs
         self.fig_type = ".svg"
-        self.fig, self.axs = plt.subplots(len(labels_units) - 1, figsize=(1920/100, 1080/100), dpi=300)
+        self.fig, self.axs = plt.subplots(
+            len(labels_units) - 1, figsize=(1920 / 100, 1080 / 100), dpi=300
+        )
 
         self.first_write = True
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
@@ -79,7 +86,7 @@ class PlotUtils:
         # doing average of averages -- THE LEN OF DATA MUST IS ALWAYS THE SAME
         self.means = {}
         plt.ion()
-        plt.yscale('log')
+        plt.yscale("log")
 
     def __update(self, data, line_name=None):
         for i in range(len(self.labels_units.keys()) - 1):
@@ -99,12 +106,14 @@ class PlotUtils:
     def __plot_next(self, data, ax, name, unit, line_name=None):
         ax.title.set_text(name)
         ax.set(ylabel=unit)
-        ax.scatter(data[name].index, data[name], label=line_name, **self.plot_kwargs)
+        ax.scatter(data[name].index, data[name],
+                   label=line_name, **self.plot_kwargs)
         ax.plot(data[name].index, data[name], alpha=0.7, **self.plot_kwargs)
 
-
         if name not in self.means:
-            self.means[name] = []  # Create a new key with an empty list as its value if it doesn't exist
+            self.means[name] = (
+                []
+            )  # Create a new key with an empty list as its value if it doesn't exist
         self.means[name].append(data[name].mean())
         if line_name is not None:
             ax.legend()
@@ -112,8 +121,15 @@ class PlotUtils:
     def show_mean(self):
         for i in range(len(self.means.keys())):
             key = list(self.means.keys())[i]
-            total_mean = round(pd.Series(self.means[key]).mean(), 4)  # rounded to 4 deciaml places
-            self.axs[i].axhline(y=total_mean,color='red',linestyle='--',label=f"{key}_mean: {total_mean}")
+            total_mean = round(
+                pd.Series(self.means[key]).mean(), 4
+            )  # rounded to 4 deciaml places
+            self.axs[i].axhline(
+                y=total_mean,
+                color="red",
+                linestyle="--",
+                label=f"{key}_mean: {total_mean}",
+            )
             self.axs[i].legend()
         self.__save_fig()
 
