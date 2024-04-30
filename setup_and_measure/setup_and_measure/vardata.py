@@ -97,7 +97,7 @@ ptp_sec_cons = {
     MACSEC_INTERFACE.strip(): "203.0.113.",
 }
 
-# currently only these data logs supported
+# first item will be ignored in the most cases
 ptp4l_log_match = Ptp4lDataLogs(
     {
         "ptp4l_runtime": "s",  # ptp4l_runtime used just for log consitecny verification
@@ -133,34 +133,38 @@ ptp_sec_cmds = {
         "master": BASE + WG_INTERFACE + L3 + SW + CUSTOM_ID,
         "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + CUSTOM_ID,
     },
-    "wg_enc_multicast_l2_sw": {  # NOTE: does not work -- tun interface has no mac
-        "master": BASE + WG_INTERFACE + L2 + SW + CUSTOM_ID,
-        "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + CUSTOM_ID,
-    },
+    # NOTE: does not work -- tun interface has no mac address
+    # "wg_enc_multicast_l2_sw": {
+    #     "master": BASE + WG_INTERFACE + L2 + SW + CUSTOM_ID,
+    #     "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + CUSTOM_ID,
+    # },
     "wg_enc_unicast_udp_sw": {
         "master": BASE + WG_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + WG_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE_WG,
     },
-    "wg_enc_unicast_l2_sw": {  # NOTE: does not work -- tun interface has no mac
-        "master": BASE + WG_INTERFACE + L2 + SW + UNICAST_MASTER,
-        "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_WG,
-    },
+    # NOTE: does not work -- tun interface has no mac address
+    # "wg_enc_unicast_l2_sw": {
+    #     "master": BASE + WG_INTERFACE + L2 + SW + UNICAST_MASTER,
+    #     "slave": BASE + WG_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE_WG,
+    # },
     "ipsec_enc_unicast_udp_sw_tunnel": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
-    "ipsec_enc_unicast_l2_sw_tunnel": {
-        "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
-        "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
-    },
+    # NOTE: not supported -- unicast is based on ip address policy matching - so it won't work with l2 transport
+    # "ipsec_enc_unicast_l2_sw_tunnel": {
+    #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+    #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    # },
     "ipsec_enc_unicast_udp_sw_transport": {
         "master": BASE + PHY_INTERFACE + L3 + SW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + SW + SLAVE + UNICAST_SLAVE,
     },
-    "ipsec_enc_unicast_l2_sw_transport": {
-        "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
-        "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
-    },
+    # NOTE: not supported -- unicast is based on ip address policy matching - so it won't work with l2 transport
+    # "ipsec_enc_unicast_l2_sw_transport": {
+    #     "master": BASE + PHY_INTERFACE + L2 + SW + UNICAST_MASTER,
+    #     "slave": BASE + PHY_INTERFACE + L2 + SW + SLAVE + UNICAST_SLAVE,
+    # },
     "macsec_enc_multicast_udp_sw": {
         "master": BASE + MACSEC_INTERFACE + L3 + SW,
         "slave": BASE + MACSEC_INTERFACE + L3 + SW + SLAVE,
@@ -209,19 +213,20 @@ ptp_sec_cmds = {
         "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
     },
-    # NOTE: not supported -- unicast is based on ipv4 address communication - so it won't work with l2 transport
-    "ipsec_enc_unicast_l2_hw_tunnel": {
-        "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
-        "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
-    },
+    # NOTE: not supported -- unicast is based on ip address policy matching - so it won't work with l2 transport
+    # "ipsec_enc_unicast_l2_hw_tunnel": {
+    #     "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
+    #     "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
+    # },
     "ipsec_enc_unicast_udp_hw_transport": {
         "master": BASE + PHY_INTERFACE + L3 + HW + UNICAST_MASTER,
         "slave": BASE + PHY_INTERFACE + L3 + HW + SLAVE + UNICAST_SLAVE,
     },
-    "ipsec_enc_unicast_l2_hw_transport": {
-        "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
-        "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
-    },
+    # NOTE: not supported -- unicast is based on ip address policy matching - so it won't work with l2 transport
+    # "ipsec_enc_unicast_l2_hw_transport": {
+    #     "master": BASE + PHY_INTERFACE + L2 + HW + UNICAST_MASTER,
+    #     "slave": BASE + PHY_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE,
+    # },
     "macsec_enc_multicast_udp_hw": {
         "master": BASE + MACSEC_INTERFACE + L3 + HW,
         "slave": BASE + MACSEC_INTERFACE + L3 + HW + SLAVE,

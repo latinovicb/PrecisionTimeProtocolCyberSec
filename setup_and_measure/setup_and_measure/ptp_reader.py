@@ -39,6 +39,7 @@ class PtpReader:
         cmds,
         log_config,
         label_pattern,
+        remote_dir,
     ):
         self.ssh_master = ssh_master
         self.scp_master = scp_master
@@ -56,10 +57,9 @@ class PtpReader:
         self.buff_size = log_config.buff_size
         self.location = log_config.location
 
+        self.remote_dir = remote_dir
+
     def do(self, mode):
-        """
-        Read lines from ptp4l output
-        """
         if mode not in self.cmds:
             log(f"'{mode}' mode is not defined!")
 
@@ -82,6 +82,34 @@ class PtpReader:
             "\n",
             " ... initializing",
         )
+
+        iface_cap = re.search(r"-i\s+(\S+)", ptp_cmd_slave).group(1)
+        # captured directly on interface specified for ptp4l -- pacekts can be read without encryption
+        # captured only on slave -- should not be saved to /tmp as not to increase ram usage
+        pcap_remote = f"/{self.remote_dir}/{mode}.pcap"
+
+        # TODO: this call is blocking and killed only by the timeout in ssh class
+        self.ssh_slave.run_command(
+            f"tshark -i {iface_cap} -w {pcap_remote}")
+
+        assert (self.ssh_slave.run_command(
+            "ps aux | grep tshark | grep -v grep"
+        ))
+
+        try:
+            self.__start(mode, ptp_cmd_master, ptp_cmd_slave)
+        except Exception as e:
+            raise e
+        finally:
+            self.ssh_slave.run_command("killall tshark")
+            self.scp_slave.get(
+                f"{pcap_remote}", f"{self.location}/caps/{mode}.pcap")
+            self.ssh_slave.run_command(f"rm {pcap_remote}")
+
+    def __start(self, mode, ptp_cmd_master, ptp_cmd_slave):
+        """
+        Read lines from ptp4l output
+        """
 
         count = 0
         first_indx = 0

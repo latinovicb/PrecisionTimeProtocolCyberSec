@@ -11,12 +11,10 @@ plt.yscale("symlog")  # symetric log
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
 class SecUtils:
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+        self, ssh_master, ssh_slave, interfaces, IFACE_PHY
     ):
         self.ssh_master = ssh_master
-        self.scp_master = scp_master
         self.ssh_slave = ssh_slave
-        self.scp_slave = scp_slave
         self.interfaces = interfaces
         self.IFACE_PHY = IFACE_PHY
         self.status = None

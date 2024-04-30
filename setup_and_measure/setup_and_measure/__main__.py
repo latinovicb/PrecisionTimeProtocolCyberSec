@@ -38,6 +38,7 @@ def measure(args):
         os.makedirs(ptp_log_config.location)
         os.makedirs(ptp_log_config.location + "/data")
         os.makedirs(ptp_log_config.location + "/plots")
+        os.makedirs(ptp_log_config.location + "/caps")
         log("made ", ptp_log_config.location)
     else:
         log(ptp_log_config.location, " exists")
@@ -62,9 +63,7 @@ def measure(args):
 
         wireguard = sec.WireGuardSetup(
             ssh_master,
-            scp_master,
             ssh_slave,
-            scp_slave,
             ptp_sec_cons,
             PHY_INTERFACE,
             WG_INTERFACE,
@@ -72,27 +71,21 @@ def measure(args):
         )
         strongswan_tunl = sec.StrongSwanSetupTunnel(
             ssh_master,
-            scp_master,
             ssh_slave,
-            scp_slave,
             ptp_sec_cons,
             PHY_INTERFACE,
             netmask,
         )
         strongswan_trans = sec.StrongSwanSetupTransport(
             ssh_master,
-            scp_master,
             ssh_slave,
-            scp_slave,
             ptp_sec_cons,
             PHY_INTERFACE,
             netmask,
         )
         macsec = sec.MacsecSetup(
             ssh_master,
-            scp_master,
             ssh_slave,
-            scp_slave,
             ptp_sec_cons,
             PHY_INTERFACE,
             MACSEC_INTERFACE,
@@ -106,10 +99,13 @@ def measure(args):
             ptp_sec_cmds,
             ptp_log_config,
             ptp4l_log_match,
+            remote_dir,
         )
-
-        setup(ssh_master, ssh_slave, scp_master,
-              scp_slave, ptp_sec_cons, remote_dir)
+        args_status = any(value for value in vars(
+            args).values() if value is True)  # do setup ops if atleast one arg is true
+        if args_status:
+            setup(ssh_master, ssh_slave, scp_master,
+                  scp_slave, ptp_sec_cons, remote_dir)
         ###
 
         # each PTP mode must be defined in the vardata.py
@@ -131,10 +127,7 @@ def measure(args):
             wireguard.do()
             if args.sw:
                 read_ptp.do("wg_enc_multicast_udp_sw")
-                # read_ptp.do("wg_enc_multicast_l2_sw")
-
                 read_ptp.do("wg_enc_unicast_udp_sw")
-                # read_ptp.do("wg_enc_unicast_l2_sw")
             wireguard.kill()
             assert wireguard.status is False
 
@@ -142,10 +135,8 @@ def measure(args):
             strongswan_tunl.do()
             if args.sw:
                 read_ptp.do("ipsec_enc_unicast_udp_sw_tunnel")
-                read_ptp.do("ipsec_enc_unicast_l2_sw_tunnel")
             if args.hw:
                 read_ptp.do("ipsec_enc_unicast_udp_hw_tunnel")
-                read_ptp.do("ipsec_enc_unicast_l2_hw_tunnel")
             strongswan_tunl.kill()
             assert strongswan_tunl.status is False
 
@@ -153,10 +144,8 @@ def measure(args):
             strongswan_trans.do()
             if args.sw:
                 read_ptp.do("ipsec_enc_unicast_udp_sw_transport")
-                read_ptp.do("ipsec_enc_unicast_l2_sw_transport")
             if args.hw:
                 read_ptp.do("ipsec_enc_unicast_udp_hw_transport")
-                read_ptp.do("ipsec_enc_unicast_l2_hw_transport")
             strongswan_trans.kill()
             assert strongswan_trans.status is False
 
@@ -166,17 +155,13 @@ def measure(args):
                 read_ptp.do("macsec_enc_multicast_udp_sw")
                 read_ptp.do("macsec_enc_multicast_l2_sw")
 
-                read_ptp.do(
-                    "macsec_enc_unicast_udp_sw"
-                )  # interface must be changed config files
+                read_ptp.do("macsec_enc_unicast_udp_sw")
                 read_ptp.do("macsec_enc_unicast_l2_sw")
             if args.hw:
                 read_ptp.do("macsec_enc_multicast_udp_hw")
                 read_ptp.do("macsec_enc_multicast_l2_hw")
 
-                read_ptp.do(
-                    "macsec_enc_unicast_udp_hw"
-                )  # interface must be changed in config files
+                read_ptp.do("macsec_enc_unicast_udp_hw")
                 read_ptp.do("macsec_enc_unicast_l2_hw")
             macsec.kill()
             assert macsec.status is False
@@ -266,7 +251,7 @@ def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
     networking.do(ssh_slave, interfaces, PHY_INTERFACE, netmask)
 
     ptp_config_files.do_id_only(ssh_master, ssh_slave, remote_dir)
-    ptp_config_files.do_ntp(ssh_master, remote_dir)
+    # ptp_config_files.do_ntp(ssh_master, remote_dir)
 
     mac_master = class_utils.SecUtils.get_mac_addr(ssh_master, PHY_INTERFACE)
     ptp_config_files.do_unicast(

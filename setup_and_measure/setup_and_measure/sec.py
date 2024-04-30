@@ -7,16 +7,14 @@ class WireGuardSetup(SecUtils):
     def __init__(
         self,
         ssh_master,
-        scp_master,
         ssh_slave,
-        scp_slave,
         interfaces,
         IFACE_PHY,
         IFACE_WG,
         remote_dir,
     ):
         super().__init__(
-            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+            ssh_master, ssh_slave, interfaces, IFACE_PHY
         )
         self.IFACE_WG = IFACE_WG
         self.dst_dir = (
@@ -101,10 +99,10 @@ class WireGuardSetup(SecUtils):
 class StrongSwanSetup(SecUtils):
 
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+        self, ssh_master, ssh_slave, interfaces, IFACE_PHY, mask
     ):
         super().__init__(
-            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+            ssh_master, ssh_slave, interfaces, IFACE_PHY
         )
         self.enc_mode = None
         self.protocol_type = None
@@ -203,10 +201,10 @@ secrets {{
 
 class StrongSwanSetupTunnel(StrongSwanSetup):
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+        self, ssh_master, ssh_slave, interfaces, IFACE_PHY, mask
     ):
         super().__init__(
-            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+            ssh_master, ssh_slave, interfaces, IFACE_PHY, mask
         )
         self.enc_mode = "tunnel"
         self.protocol_type = "esp"
@@ -215,10 +213,10 @@ class StrongSwanSetupTunnel(StrongSwanSetup):
 
 class StrongSwanSetupTransport(StrongSwanSetup):
     def __init__(
-        self, ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+        self, ssh_master, ssh_slave, interfaces, IFACE_PHY, mask
     ):
         super().__init__(
-            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY, mask
+            ssh_master, ssh_slave, interfaces, IFACE_PHY, mask
         )
         self.enc_mode = "transport"
         self.protocol_type = "esp"
@@ -230,16 +228,14 @@ class MacsecSetup(SecUtils):
     def __init__(
         self,
         ssh_master,
-        scp_master,
         ssh_slave,
-        scp_slave,
         interfaces,
         IFACE_PHY,
         IFACE_MACSEC,
         remote_dir,
     ):
         super().__init__(
-            ssh_master, scp_master, ssh_slave, scp_slave, interfaces, IFACE_PHY
+            ssh_master, ssh_slave, interfaces, IFACE_PHY
         )
         self.IFACE_MACSEC = IFACE_MACSEC
         self.dst_dir = f"/{remote_dir}/{IFACE_MACSEC}"
