@@ -70,7 +70,7 @@ class PlotUtils:
         self.labels_units = labels_units
         self.plot_kwargs = plot_kwargs
         self.fig_type = ".svg"
-        self.fig, self.axs = plt.subplots(len(labels_units) - 1, figsize=(16, 9), dpi=200)
+        self.fig, self.axs = plt.subplots(len(labels_units) - 1, figsize=(1920/100, 1080/100), dpi=300)
 
         self.first_write = True
         self.fig.suptitle(f"ptp4l parsed data -- {title}")
@@ -118,6 +118,6 @@ class PlotUtils:
         self.__save_fig()
 
     def __save_fig(self):
-        name = f"{self.location}/{self.title}"
+        name = f"{self.location}/plots/{self.title}"
         print(f"Figure updated/saved to {name}")
         plt.savefig(name + self.fig_type)

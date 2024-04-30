@@ -35,6 +35,8 @@ def measure(args):
 
     if not os.path.exists(ptp_log_config.location):
         os.makedirs(ptp_log_config.location)
+        os.makedirs(ptp_log_config.location + "/data")
+        os.makedirs(ptp_log_config.location + "/plots")
         print("made ", ptp_log_config.location)
     else:
         print(ptp_log_config.location, " exists")

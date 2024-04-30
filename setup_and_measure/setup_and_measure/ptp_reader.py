@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import re
 from class_utils import PlotUtils
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)  # FIXME: df._append below
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class PTPSinglePlotter(PlotUtils):
@@ -17,7 +17,7 @@ class PTPSinglePlotter(PlotUtils):
         self.__save_csv(data)
 
     def __save_csv(self, data):
-        name = f"{self.location}/{self.title}.csv"
+        name = f"{self.location}/data/{self.title}.csv"
         if self.csv_first_write:
             print(f" ... rewriting/creating file {name}")
             data.to_csv(name, mode="w", header=True)
@@ -98,10 +98,10 @@ class PtpReader():
                     )
                     count = 0
 
+                # NOTE: probably not very resource efficient
                 data = pd.Series(
-                    data, name=first_indx + count
-                )  # NOTE: probably not very resource efficient
-                df = df._append(data)  # FIXME: should be changed to concat
+                    data, name=first_indx + count)
+                df = pd.concat([df, data.to_frame().T], axis=0)
                 count += 1
         except Exception as e:
             raise e

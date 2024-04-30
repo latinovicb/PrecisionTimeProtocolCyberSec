@@ -14,7 +14,7 @@ class PTPCombinedPlotter(PlotUtils):
 
 def do(directory, selected, labels_units, ts_type="all", protocol="all"):
 
-    csv_files = [file for file in os.listdir(directory) if file.endswith('.csv')]
+    csv_files = [file for file in os.listdir(directory + "/data") if file.endswith('.csv')]
     if not csv_files:
         print("No CSV files found in the specified directory.")
         return
@@ -36,7 +36,7 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
                 else:
                     continue
 
-            file_path = os.path.join(directory, csv_file)
+            file_path = os.path.join(directory+ "/data", csv_file)
 
             df = pd.read_csv(file_path, index_col=0)
 
