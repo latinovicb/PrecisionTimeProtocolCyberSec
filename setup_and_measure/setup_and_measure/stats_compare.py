@@ -30,7 +30,16 @@ def stat_maker(data_row, ptp_info, name):
     standard_deviation = np.std(data_row)
     mean_abs_deviation = np.mean(np.absolute(data_row - mean))
     median_abs_deviation = sci.stats.median_abs_deviation(data_row)
-    fourier_trans = np.fft.fft(data_row)
+
+    # TODO: finish fft & spectral analysis
+    fast_ft = sci.fft.fft(data_row)
+    fft_magnitude = np.abs(fast_ft)
+    # slow_ft = sci.signal.stft(data_row) #NOTE: nperseg = 256 is greater than input length
+
+    # plt.figure(figsize=(12, 6))
+    # plt.plot(fft_magnitude)
+    # plt.savefig(f"/tmp/ptp_reads/fft_{name}_{ptp_info}")
+    # plt.close()
 
     data_series = pd.Series(
         [mean, median, mean_v_median, variance, standard_deviation,
@@ -45,19 +54,19 @@ def stat_maker(data_row, ptp_info, name):
     return data_series
 
 
-def do(directory, selected, labels_units, ts_type="all", protocol="all"):
+def do(location, selected, labels_units, ts_type="all", protocol="all"):
 
     csv_files = [
-        file for file in os.listdir(directory + "/data") if file.endswith(".csv")
+        file for file in os.listdir(location.data) if file.endswith(".csv")
     ]
     if not csv_files:
-        log("No CSV files found in the specified directory.")
+        log(f"No CSV files found in the specified location. {location.data}")
         return
     plot_kwargs = {"linestyle": "dashdot"}
     combined_plotter = PTPCombinedPlotter(
         f"combined_ts_{ts_type}_{protocol}",
         labels_units.log_data,
-        directory,
+        location,
         plot_kwargs,
     )
 
@@ -83,7 +92,7 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
                 else:
                     continue
 
-            file_path = os.path.join(directory + "/data", csv_file)
+            file_path = os.path.join(location.data, csv_file)
             df = pd.read_csv(file_path, index_col=0)
             # NOTE: only data where the servo is already stabilized taken into account
             first_index_of_2 = df["servo"].idxmax()
@@ -101,6 +110,6 @@ def do(directory, selected, labels_units, ts_type="all", protocol="all"):
     if protocol == "all" and ts_type == "all":  # do this only once
         for i in stats_data_frames.keys():
             stat_data = stats_data_frames[i]
-            dest = directory + "/data/" + i + "_statistics.csv"
+            dest = location.data + i + "_statistics.csv"
             stat_data.to_csv(dest, mode='w')
             log(f"Statistics for {i} saved to {dest}")

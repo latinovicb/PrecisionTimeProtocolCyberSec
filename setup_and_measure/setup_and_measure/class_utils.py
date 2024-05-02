@@ -133,6 +133,6 @@ class PlotUtils:
         self.__save_fig()
 
     def __save_fig(self):
-        name = f"{self.location}/plots/{self.title}"
-        log(f"Figure updated/saved to {name}")
+        name = f"{self.location.plots}{self.title}"
+        log(f"Figure UPDATED in {name}")
         plt.savefig(name + self.fig_type)

@@ -15,6 +15,22 @@ class SSHConn:
 
 
 @dataclass
+class LocationThisDevice:
+    root: str
+    data: str
+    plots: str
+    caps: str
+
+    def __init__(self, root_dir):
+        if root_dir[-1] != "/":
+            root_dir += "/"
+        self.root = root_dir
+        self.data = self.root + 'numerical_data/'
+        self.plots = self.root + 'plots/'
+        self.caps = self.root + 'capture/'
+
+
+@dataclass
 class PlotLogConf:
     time: int  # in s
     # after how many ptp logs/messages new image is generated (by default 1 logs - 1 message)
@@ -66,7 +82,7 @@ ssh_conns = {
 ptp_log_config = PlotLogConf(
     config_data["ptp_log_configuration"]["measurment_time"],
     config_data["ptp_log_configuration"]["buff_size"],
-    config_data["ptp_log_configuration"]["log_directory"],
+    LocationThisDevice(config_data["ptp_log_configuration"]["log_directory"]),
 )
 
 

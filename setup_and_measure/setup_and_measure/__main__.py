@@ -34,14 +34,14 @@ def measure(args):
     assert len(masters) == len(slaves)
     no_peers = len(masters)
 
-    if not os.path.exists(ptp_log_config.location):
-        os.makedirs(ptp_log_config.location)
-        os.makedirs(ptp_log_config.location + "/data")
-        os.makedirs(ptp_log_config.location + "/plots")
-        os.makedirs(ptp_log_config.location + "/caps")
-        log("made ", ptp_log_config.location)
+    if not os.path.exists(ptp_log_config.location.root):
+        os.makedirs(ptp_log_config.location.root)
+        os.makedirs(ptp_log_config.location.data)
+        os.makedirs(ptp_log_config.location.plots)
+        os.makedirs(ptp_log_config.location.caps)
+        log("made ", ptp_log_config.location.root)
     else:
-        log(ptp_log_config.location, " exists")
+        log(ptp_log_config.location.root, " exists")
 
     # extra log for master so that generators wouldn't bug -- maybe fix generators later
     for key, value in ptp_sec_cmds.items():

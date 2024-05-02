@@ -19,13 +19,13 @@ class PTPSinglePlotter(PlotUtils):
         self.__save_csv(data)
 
     def __save_csv(self, data):
-        name = f"{self.location}/data/{self.title}.csv"
+        name = f"{self.location.data}{self.title}.csv"
         if self.csv_first_write:
             log(f" ... rewriting/creating file {name}")
             data.to_csv(name, mode="w", header=True)
             self.csv_first_write = False
         else:
-            log(f" appending to file {name}")
+            log(f"Data_file UPDATED in {name}")
             data.to_csv(name, mode="a", header=False)
 
 
@@ -103,7 +103,7 @@ class PtpReader:
         finally:
             self.ssh_slave.run_command("killall tshark")
             self.scp_slave.get(
-                f"{pcap_remote}", f"{self.location}/caps/{mode}.pcap")
+                f"{pcap_remote}", f"{self.location.caps}{mode}.pcap")
             self.ssh_slave.run_command(f"rm {pcap_remote}")
 
     def __start(self, mode, ptp_cmd_master, ptp_cmd_slave):
