@@ -241,9 +241,6 @@ def measure(args):
             )
 
 
-# def sec_set_mes(sec_obj, mes_obj):
-
-
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
     files_packages.do(ssh_master, scp_master)
     files_packages.do(ssh_slave, scp_master)
@@ -269,6 +266,7 @@ class CommandTimeout(Exception):
     pass
 
 
+# TODO: move this to class_utils
 class MySSHClient(paramiko.SSHClient):
     def __init__(self, addr, user, passw):
         super().__init__()
@@ -276,10 +274,6 @@ class MySSHClient(paramiko.SSHClient):
         # timeout if there is not data comming from stdout -- keep it >10s just to be safe
         self.stuck_cmd = 10
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # current_user = os.getenv('USER')
-        # command = f'ssh-keygen -f "/home/{current_user}/.ssh/known_hosts" -R "{addr}"'
-        # os.system(command)
 
         self.connect(addr, username=user, password=passw)
         self.run_command("mount -o remount,rw /")
@@ -289,7 +283,7 @@ class MySSHClient(paramiko.SSHClient):
         if errors:
             log(f"{self.addr} warning/err: {errors}")
 
-    def run_command(self, command):
+    def run_command(self, command, pty=True):
         """
         run single command with timeout handler
         """
@@ -297,11 +291,14 @@ class MySSHClient(paramiko.SSHClient):
 
         try:  # all single execution commands have specific timeout
             stdin, stdout, stderr = self.exec_command(
-                command, timeout=self.stuck_cmd)
+                command, get_pty=pty, timeout=self.stuck_cmd)
             self.__stderr_check(stderr)
             return stdout.read().decode().strip()
         except TimeoutError as e:
-            log("timed out ", command)
+            log("Single exec. timed out ", command)
+            log(e)
+        except paramiko.SSHException as e:
+            log("Single exec. channel timed out ", command)
             log(e)
 
     def run_continous(self, command, seconds):
@@ -309,16 +306,21 @@ class MySSHClient(paramiko.SSHClient):
         to be used if long outputs are expected - generator with timer
         """
         start_time = time.time()
-        stdin, stdout, stderr = self.exec_command(
-            command, get_pty=True, timeout=self.stuck_cmd
-        )
         try:
-            for line in iter(stdout.readline, ""):
-                if time.time() > start_time + seconds:
-                    return
-                yield line
+            stdin, stdout, stderr = self.exec_command(
+                command, get_pty=True, timeout=self.stuck_cmd
+            )
         except TimeoutError as e:
-            log(command, " -- command finished ", e)
+            log("Continous exec. timed out ", command)
+            log(e)
+        except paramiko.ssh_exception.SSHException as e:
+            log("Continous exec. channel timed out", command)
+            log(e)
+
+        for line in iter(stdout.readline, ""):
+            if time.time() > start_time + seconds:
+                return
+            yield line
 
 
 def main():

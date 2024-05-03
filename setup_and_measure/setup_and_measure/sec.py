@@ -39,9 +39,10 @@ class WireGuardSetup(SecUtils):
         self._SecUtils__del_link(self.ssh_slave, self.IFACE_WG, self.dst_dir)
 
     def __setup_interfaces_keys(self, ssh):
+        # this just does not work with enabled pty for some reason
+        ssh.run_command(f"./wireguard-go {self.IFACE_WG}", False)
         wg_set_comms = (
             "mkdir {dst_dir}",
-            "./wireguard-go {iface}",
             "wg genkey > {dst_dir}/private_key",
             "wg pubkey < {dst_dir}/private_key > {dst_dir}/public_key",
             "wg set {iface} private-key {dst_dir}/private_key",
@@ -51,7 +52,6 @@ class WireGuardSetup(SecUtils):
         )
         self._SecUtils__generic_cmds(
             wg_set_comms, ssh, self.IFACE_WG, do_format=True)
-        # cmds, ssh, iface=None, interfaces=None, dst_dir=None, do_format=True
 
     def __setup_peers(self):
         pub_master, port_master = self.__get_wg_info(
