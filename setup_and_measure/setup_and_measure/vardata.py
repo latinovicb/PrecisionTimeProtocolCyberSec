@@ -25,9 +25,10 @@ class LocationThisDevice:
         if root_dir[-1] != "/":
             root_dir += "/"
         self.root = root_dir
-        self.data = self.root + 'numerical_data/'
-        self.plots = self.root + 'plots/'
-        self.caps = self.root + 'capture/'
+        self.data = self.root + 'real-time-raw-values/'
+        self.plots = self.root + 'real-time-raw-plots/'
+        self.caps = self.root + 'network-caps/'
+        self.stats = self.root + 'stats_plots_comparisons/'
 
 
 @dataclass

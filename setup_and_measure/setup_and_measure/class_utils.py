@@ -87,7 +87,9 @@ class PlotUtils:
         plt.ion()
         plt.yscale("log")
 
-    def __update(self, data, line_name=None):
+    def __update(self, data, line_name=None, location=None):
+        if location is None:
+            location = self.location.plots
         for i in range(len(self.labels_units.keys()) - 1):
             self.__plot_next(
                 data,
@@ -97,7 +99,7 @@ class PlotUtils:
                 line_name,
             )
 
-        self.__save_fig()
+        self.__save_fig(location)
 
     # # to be called just with single row series -- ax position specified explicitely
     # def __simple_update(self, data, line_name, postiion):
@@ -130,9 +132,10 @@ class PlotUtils:
                 label=f"{key}_mean: {total_mean}",
             )
             self.axs[i].legend()
-        self.__save_fig()
+            self.axs[i].grid()
+        self.__save_fig(self.location.plots)
 
-    def __save_fig(self):
-        name = f"{self.location.plots}{self.title}"
+    def __save_fig(self, location):
+        name = f"{location}{self.title}"
         log(f"Figure UPDATED in {name}")
         plt.savefig(name + self.fig_type)

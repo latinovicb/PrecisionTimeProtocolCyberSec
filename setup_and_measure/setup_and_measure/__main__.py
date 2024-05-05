@@ -39,6 +39,7 @@ def measure(args):
         os.makedirs(ptp_log_config.location.data)
         os.makedirs(ptp_log_config.location.plots)
         os.makedirs(ptp_log_config.location.caps)
+        os.makedirs(ptp_log_config.location.stats)
         log("made ", ptp_log_config.location.root)
     else:
         log(ptp_log_config.location.root, " exists")
@@ -56,6 +57,8 @@ def measure(args):
         ssh_slave = MySSHClient(
             slaves[i].addr, slaves[i].user, slaves[i].passw)
         scp_slave = SCPClient(ssh_slave.get_transport())
+        stat_comp = stats_compare.StatMakerComparator(
+            ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
 
         remote_dir = masters[
             i
@@ -123,13 +126,13 @@ def measure(args):
                 read_ptp.do("no_enc_unicast_l2_hw")
 
         if args.enc:
-            wireguard.kill()
-            wireguard.do()
-            if args.sw:
-                read_ptp.do("wg_enc_multicast_udp_sw")
-                read_ptp.do("wg_enc_unicast_udp_sw")
-            wireguard.kill()
-            assert wireguard.status is False
+            # wireguard.kill()
+            # wireguard.do()
+            # if args.sw:
+            #     read_ptp.do("wg_enc_multicast_udp_sw")
+            #     read_ptp.do("wg_enc_unicast_udp_sw")
+            # wireguard.kill()
+            # assert wireguard.status is False
 
             strongswan_tunl.kill()
             strongswan_tunl.do()
@@ -166,79 +169,21 @@ def measure(args):
             macsec.kill()
             assert macsec.status is False
 
-        stats_compare.do(ptp_log_config.location,
-                         ptp_sec_cmds.keys(), ptp4l_log_match)
+        stat_comp.do()
+        stat_comp.do(do_stats=True)
 
         if args.hw:
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="hw",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="hw",
-                protocol="no_enc",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="hw",
-                protocol="wg",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="hw",
-                protocol="ipsec",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="hw",
-                protocol="macsec",
-            )
+            stat_comp.do(ts_type="hw")
+            stat_comp.do(ts_type="hw", protocol="no_enc")
+            stat_comp.do(ts_type="hw", protocol="wg")
+            stat_comp.do(ts_type="hw", protocol="ipsec")
+            stat_comp.do(ts_type="hw", protocol="macsec")
         if args.sw:
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="sw",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="sw",
-                protocol="no_enc",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="sw",
-                protocol="wg",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="sw",
-                protocol="ipsec",
-            )
-            stats_compare.do(
-                ptp_log_config.location,
-                ptp_sec_cmds.keys(),
-                ptp4l_log_match,
-                ts_type="sw",
-                protocol="macsec",
-            )
+            stat_comp.do(ts_type="sw")
+            stat_comp.do(ts_type="sw", protocol="no_enc")
+            stat_comp.do(ts_type="sw", protocol="wg",)
+            stat_comp.do(ts_type="sw", protocol="ipsec")
+            stat_comp.do(ts_type="sw", protocol="macsec")
 
 
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
