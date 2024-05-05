@@ -50,140 +50,144 @@ def measure(args):
 
     for i in range(no_peers):
         # objects
-        ssh_master = MySSHClient(
-            masters[i].addr, masters[i].user, masters[i].passw)
-        scp_master = SCPClient(ssh_master.get_transport())
+        if args.mes:
+            log("DO MES")
+            ssh_master = MySSHClient(
+                masters[i].addr, masters[i].user, masters[i].passw)
+            scp_master = SCPClient(ssh_master.get_transport())
 
-        ssh_slave = MySSHClient(
-            slaves[i].addr, slaves[i].user, slaves[i].passw)
-        scp_slave = SCPClient(ssh_slave.get_transport())
-        stat_comp = stats_compare.StatMakerComparator(
-            ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
+            ssh_slave = MySSHClient(
+                slaves[i].addr, slaves[i].user, slaves[i].passw)
+            scp_slave = SCPClient(ssh_slave.get_transport())
 
-        remote_dir = masters[
-            i
-        ].dir  # assuming that master and slave will use remote dir with the same name
+            remote_dir = masters[
+                i
+            ].dir  # assuming that master and slave will use remote dir with the same name
 
-        wireguard = sec.WireGuardSetup(
-            ssh_master,
-            ssh_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-            WG_INTERFACE,
-            remote_dir,
-        )
-        strongswan_tunl = sec.StrongSwanSetupTunnel(
-            ssh_master,
-            ssh_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-            netmask,
-        )
-        strongswan_trans = sec.StrongSwanSetupTransport(
-            ssh_master,
-            ssh_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-            netmask,
-        )
-        macsec = sec.MacsecSetup(
-            ssh_master,
-            ssh_slave,
-            ptp_sec_cons,
-            PHY_INTERFACE,
-            MACSEC_INTERFACE,
-            remote_dir,
-        )
-        read_ptp = ptp_reader.PtpReader(
-            ssh_master,
-            scp_master,
-            ssh_slave,
-            scp_slave,
-            ptp_sec_cmds,
-            ptp_log_config,
-            ptp4l_log_match,
-            remote_dir,
-        )
-        args_status = any(value for value in vars(
-            args).values() if value is True)  # do setup ops if atleast one arg is true
-        if args_status:
-            setup(ssh_master, ssh_slave, scp_master,
-                  scp_slave, ptp_sec_cons, remote_dir)
-        ###
+            wireguard = sec.WireGuardSetup(
+                ssh_master,
+                ssh_slave,
+                ptp_sec_cons,
+                PHY_INTERFACE,
+                WG_INTERFACE,
+                remote_dir,
+            )
+            strongswan_tunl = sec.StrongSwanSetupTunnel(
+                ssh_master,
+                ssh_slave,
+                ptp_sec_cons,
+                PHY_INTERFACE,
+                netmask,
+            )
+            strongswan_trans = sec.StrongSwanSetupTransport(
+                ssh_master,
+                ssh_slave,
+                ptp_sec_cons,
+                PHY_INTERFACE,
+                netmask,
+            )
+            macsec = sec.MacsecSetup(
+                ssh_master,
+                ssh_slave,
+                ptp_sec_cons,
+                PHY_INTERFACE,
+                MACSEC_INTERFACE,
+                remote_dir,
+            )
+            read_ptp = ptp_reader.PtpReader(
+                ssh_master,
+                scp_master,
+                ssh_slave,
+                scp_slave,
+                ptp_sec_cmds,
+                ptp_log_config,
+                ptp4l_log_match,
+                remote_dir,
+            )
+            args_status = any(value for value in vars(
+                args).values() if value is True)  # do setup ops if atleast one arg is true
+            if args_status:
+                setup(ssh_master, ssh_slave, scp_master,
+                      scp_slave, ptp_sec_cons, remote_dir)
+            ###
 
-        # each PTP mode must be defined in the vardata.py
-        if args.nenc:
-            if args.sw:
-                read_ptp.do("no_enc_multicast_udp_sw")
-                read_ptp.do("no_enc_multicast_l2_sw")
-                read_ptp.do("no_enc_unicast_udp_sw")
-                read_ptp.do("no_enc_unicast_l2_sw")
+            # each PTP mode must be defined in the vardata.py
+            if args.nenc:
+                if args.sw:
+                    read_ptp.do("no_enc_multicast_udp_sw")
+                    read_ptp.do("no_enc_multicast_l2_sw")
+                    read_ptp.do("no_enc_unicast_udp_sw")
+                    read_ptp.do("no_enc_unicast_l2_sw")
+
+                if args.hw:
+                    read_ptp.do("no_enc_multicast_udp_hw")
+                    read_ptp.do("no_enc_multicast_l2_hw")
+                    read_ptp.do("no_enc_unicast_udp_hw")
+                    read_ptp.do("no_enc_unicast_l2_hw")
+
+            if args.enc:
+                # wireguard.kill()
+                # wireguard.do()
+                # if args.sw:
+                #     read_ptp.do("wg_enc_multicast_udp_sw")
+                #     read_ptp.do("wg_enc_unicast_udp_sw")
+                # wireguard.kill()
+                # assert wireguard.status is False
+
+                strongswan_tunl.kill()
+                strongswan_tunl.do()
+                if args.sw:
+                    read_ptp.do("ipsec_enc_unicast_udp_sw_tunnel")
+                if args.hw:
+                    read_ptp.do("ipsec_enc_unicast_udp_hw_tunnel")
+                strongswan_tunl.kill()
+                assert strongswan_tunl.status is False
+
+                strongswan_trans.kill()
+                strongswan_trans.do()
+                if args.sw:
+                    read_ptp.do("ipsec_enc_unicast_udp_sw_transport")
+                if args.hw:
+                    read_ptp.do("ipsec_enc_unicast_udp_hw_transport")
+                strongswan_trans.kill()
+                assert strongswan_trans.status is False
+
+                macsec.kill()
+                macsec.do()
+                if args.sw:
+                    read_ptp.do("macsec_enc_multicast_udp_sw")
+                    read_ptp.do("macsec_enc_multicast_l2_sw")
+
+                    read_ptp.do("macsec_enc_unicast_udp_sw")
+                    read_ptp.do("macsec_enc_unicast_l2_sw")
+                if args.hw:
+                    read_ptp.do("macsec_enc_multicast_udp_hw")
+                    read_ptp.do("macsec_enc_multicast_l2_hw")
+
+                    read_ptp.do("macsec_enc_unicast_udp_hw")
+                    read_ptp.do("macsec_enc_unicast_l2_hw")
+                macsec.kill()
+                assert macsec.status is False
+
+        if args.stat:
+            log("DO STAT")
+            stat_comp = stats_compare.StatMakerComparator(
+                ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
+            stat_comp.do()
+            stat_comp.do(do_stats=True)
 
             if args.hw:
-                read_ptp.do("no_enc_multicast_udp_hw")
-                read_ptp.do("no_enc_multicast_l2_hw")
-                read_ptp.do("no_enc_unicast_udp_hw")
-                read_ptp.do("no_enc_unicast_l2_hw")
-
-        if args.enc:
-            # wireguard.kill()
-            # wireguard.do()
-            # if args.sw:
-            #     read_ptp.do("wg_enc_multicast_udp_sw")
-            #     read_ptp.do("wg_enc_unicast_udp_sw")
-            # wireguard.kill()
-            # assert wireguard.status is False
-
-            strongswan_tunl.kill()
-            strongswan_tunl.do()
+                stat_comp.do(ts_type="hw")
+                stat_comp.do(ts_type="hw", protocol="no_enc")
+                stat_comp.do(ts_type="hw", protocol="wg")
+                stat_comp.do(ts_type="hw", protocol="ipsec")
+                stat_comp.do(ts_type="hw", protocol="macsec")
             if args.sw:
-                read_ptp.do("ipsec_enc_unicast_udp_sw_tunnel")
-            if args.hw:
-                read_ptp.do("ipsec_enc_unicast_udp_hw_tunnel")
-            strongswan_tunl.kill()
-            assert strongswan_tunl.status is False
-
-            strongswan_trans.kill()
-            strongswan_trans.do()
-            if args.sw:
-                read_ptp.do("ipsec_enc_unicast_udp_sw_transport")
-            if args.hw:
-                read_ptp.do("ipsec_enc_unicast_udp_hw_transport")
-            strongswan_trans.kill()
-            assert strongswan_trans.status is False
-
-            macsec.kill()
-            macsec.do()
-            if args.sw:
-                read_ptp.do("macsec_enc_multicast_udp_sw")
-                read_ptp.do("macsec_enc_multicast_l2_sw")
-
-                read_ptp.do("macsec_enc_unicast_udp_sw")
-                read_ptp.do("macsec_enc_unicast_l2_sw")
-            if args.hw:
-                read_ptp.do("macsec_enc_multicast_udp_hw")
-                read_ptp.do("macsec_enc_multicast_l2_hw")
-
-                read_ptp.do("macsec_enc_unicast_udp_hw")
-                read_ptp.do("macsec_enc_unicast_l2_hw")
-            macsec.kill()
-            assert macsec.status is False
-
-        stat_comp.do()
-        stat_comp.do(do_stats=True)
-
-        if args.hw:
-            stat_comp.do(ts_type="hw")
-            stat_comp.do(ts_type="hw", protocol="no_enc")
-            stat_comp.do(ts_type="hw", protocol="wg")
-            stat_comp.do(ts_type="hw", protocol="ipsec")
-            stat_comp.do(ts_type="hw", protocol="macsec")
-        if args.sw:
-            stat_comp.do(ts_type="sw")
-            stat_comp.do(ts_type="sw", protocol="no_enc")
-            stat_comp.do(ts_type="sw", protocol="wg",)
-            stat_comp.do(ts_type="sw", protocol="ipsec")
-            stat_comp.do(ts_type="sw", protocol="macsec")
+                stat_comp.do(ts_type="sw")
+                stat_comp.do(ts_type="sw", protocol="no_enc")
+                stat_comp.do(ts_type="sw", protocol="wg",)
+                stat_comp.do(ts_type="sw", protocol="ipsec")
+                stat_comp.do(ts_type="sw", protocol="macsec")
 
 
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
@@ -293,6 +297,11 @@ def main():
         action="store_true", help="Enable measurement with all encryption protocols; \
             timestamping options must still be specified"
     )
+    parser.add_argument("-stat", action="store_true",
+                        help="Do statistics and plot comparisons \
+                        (there must be existing data in dir)")
+    parser.add_argument("-mes", action="store_true",
+                        help="Do measurment on provided Master & Slave devices")
 
     args = parser.parse_args()
 
