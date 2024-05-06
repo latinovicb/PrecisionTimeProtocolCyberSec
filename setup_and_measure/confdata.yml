@@ -16,6 +16,6 @@ ssh_conns:
       password: ""
 
 ptp_log_configuration:
-  measurment_time: 60  # s
-  buff_size: 10
+  measurment_time: 2700  # s
+  buff_size: 60
   log_directory: "/tmp/ptp_reads"  # this computer

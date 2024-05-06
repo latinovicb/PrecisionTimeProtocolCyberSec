@@ -12,7 +12,6 @@ class PTPSinglePlotter(PlotUtils):
     def __init__(self, title, labels_units, location, plot_kwargs):
         super().__init__(title, labels_units, location, plot_kwargs)
         self.csv_first_write = True
-        self.fig.suptitle(f"ptp4l parsed data -- {title}")
 
     def update(self, data):
         self._PlotUtils__update(data)
@@ -90,7 +89,7 @@ class PtpReader:
 
         # TODO: this call is blocking and killed only by the timeout in ssh class
         self.ssh_slave.run_command(
-            f"tshark -i {iface_cap} -w {pcap_remote}")
+            f"nohup tshark -i {iface_cap} -w {pcap_remote} & sleep 2")
 
         assert (self.ssh_slave.run_command(
             "ps aux | grep tshark | grep -v grep"

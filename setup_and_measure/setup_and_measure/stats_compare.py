@@ -12,7 +12,7 @@ stat_names = ["mean", "median", "median - mean", "variance", "standard deviation
 class PTPCombinedPlotter(PlotUtils):
     def __init__(self, title, labels_units, location, plot_kwargs):
         super().__init__(title, labels_units, location, plot_kwargs)
-        self.fig.suptitle(f"ptp4l data -- {title}")
+        # self.fig.suptitle(f"ptp4l data -- {title}")
 
     def update(self, data, line_name):
         self._PlotUtils__update(data, line_name, self.location.stats)
@@ -48,7 +48,6 @@ def stat_maker(data_row, ptp_info, name):
     median_abs_deviation = sci.stats.median_abs_deviation(data_row)
 
     # TODO: finish fft & spectral analysis
-    # histogram = np.histogram(data_row, bins=10)
     # fast_ft = sci.fft.fft(data_row)
     # fft_magnitude = np.abs(fast_ft)
     # slow_ft = sci.signal.stft(data_row) #NOTE: nperseg = 256 is greater than input length
@@ -115,8 +114,14 @@ class StatMakerComparator:
                 df = pd.read_csv(file_path, index_col=0)
 
                 # NOTE: only data where the servo is already stabilized taken into account for statistical analysis
-                first_index_of_2 = df["servo"].idxmax()
-                df.iloc[:first_index_of_2, :-1] = float("nan")
+                # for the purpose of data comparison & analysis remove n more samples, just to be sure
+                nan_vals_after_stable_servo = 20
+                columns_to_nan = df.columns.difference(['servo'])
+                first_index = df[df['servo'] == 2.0].index[0]
+                df.loc[:first_index, columns_to_nan] = np.nan
+                last_index = min(
+                    first_index + nan_vals_after_stable_servo, len(df))
+                df.loc[first_index:last_index, columns_to_nan] = np.nan
 
                 if do_stats:
                     # stat_plots = location.stats + file_name + "_stat_plots"
