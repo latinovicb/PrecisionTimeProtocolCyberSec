@@ -73,18 +73,22 @@ class PlotUtils:
         self.location = location
         self.labels_units = labels_units
         self.plot_kwargs = plot_kwargs
-        self.fig_type = ".svg"
+        self.fig_type = ".png"
         self.fig, self.axs = plt.subplots(
             len(labels_units) - 1, figsize=(1920 / 100, 1080 / 100), dpi=300
         )
+        for ax in self.axs:
+            ax.grid()
 
         self.first_write = True
-        self.fig.suptitle(f"ptp4l parsed data -- {title}")
+        # self.fig.suptitle(f"ptp4l parsed data -- {title}")
         # plt.rcParams["figure.figsize"] = [12.04, 7.68]
 
         # doing average of averages -- THE LEN OF DATA MUST IS ALWAYS THE SAME
         self.means = {}
         plt.ion()
+        # Increase pad to give more space, adjust w_pad and h_pad as needed
+        plt.tight_layout(pad=5.0, w_pad=1.0, h_pad=1.0)
         plt.yscale("log")
 
     def __update(self, data, line_name=None, location=None):
@@ -105,8 +109,9 @@ class PlotUtils:
     # def __simple_update(self, data, line_name, postiion):
 
     def __plot_next(self, data, ax, name, unit, line_name=None):
-        ax.title.set_text(name)
-        ax.set(ylabel=unit)
+        # ax.title.set_text(name)
+        ax.set_ylabel(f"{name} [{unit}]", fontsize=14)
+        ax.set_xlabel("time [s]", labelpad=-5, fontsize=14)
         ax.scatter(data[name].index, data[name],
                    label=line_name, **self.plot_kwargs)
         ax.plot(data[name].index, data[name], alpha=0.7, **self.plot_kwargs)
@@ -122,20 +127,39 @@ class PlotUtils:
     def show_mean(self):
         for i in range(len(self.means.keys())):
             key = list(self.means.keys())[i]
-            total_mean = round(
-                pd.Series(self.means[key]).mean(), 4
-            )  # rounded to 4 deciaml places
+            # rounded to 4 deciaml places
+            total_mean = pd.Series(self.means[key]).mean()
             self.axs[i].axhline(
                 y=total_mean,
                 color="red",
                 linestyle="--",
-                label=f"{key}_mean: {total_mean}",
+                label=f"{key}_mean",
             )
-            self.axs[i].legend()
-            self.axs[i].grid()
+            self.axs[i].legend(loc='best', fontsize='large')
         self.__save_fig(self.location.plots)
 
     def __save_fig(self, location):
         name = f"{location}{self.title}"
         log(f"Figure UPDATED in {name}")
         plt.savefig(name + self.fig_type)
+
+
+class PTPSinglePlotter(PlotUtils):
+    def __init__(self, title, labels_units, location, plot_kwargs):
+        super().__init__(title, labels_units, location, plot_kwargs)
+        self.csv_first_write = True
+        # self.fig.suptitle(f"ptp4l parsed data -- {title}")
+
+    def update(self, data):
+        self._PlotUtils__update(data)
+        self.__save_csv(data)
+
+    def __save_csv(self, data):
+        name = f"{self.location.data}{self.title}.csv"
+        if self.csv_first_write:
+            log(f" ... rewriting/creating file {name}")
+            data.to_csv(name, mode="w", header=True)
+            self.csv_first_write = False
+        else:
+            log(f"Data_file UPDATED in {name}")
+            data.to_csv(name, mode="a", header=False)

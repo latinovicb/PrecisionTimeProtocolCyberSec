@@ -3,7 +3,7 @@ import numpy as np
 import scipy as sci
 from logger import log
 import pandas as pd
-from class_utils import PlotUtils
+from class_utils import PlotUtils, PTPSinglePlotter
 
 stat_names = ["mean", "median", "median - mean", "variance", "standard deviation",
               "absolute mean deviation", "absolute median deviation"]
@@ -115,8 +115,18 @@ class StatMakerComparator:
                 df = pd.read_csv(file_path, index_col=0)
 
                 # NOTE: only data where the servo is already stabilized taken into account for statistical analysis
+                ###
+                plot_style = (0, (5, 10))
+                plot_kwargs = {"linestyle": plot_style, "color": "blue"}
+                myPlt = PTPSinglePlotter(
+                    file_name, self.labels_units.log_data, self.location, plot_kwargs)
+
+                ###
+
+                # log("BEFORE: ", df)
                 first_index_of_2 = df["servo"].idxmax()
                 df.iloc[:first_index_of_2, :-1] = float("nan")
+                # log("AFTER: ", df)
 
                 if do_stats:
                     # stat_plots = location.stats + file_name + "_stat_plots"
@@ -135,7 +145,9 @@ class StatMakerComparator:
                         assert len(data) == len(stat_names)
                         stats_data_frames[ptp_info][data.name] = data
                 else:
-                    combined_plotter.update(df, file_name)
+                    myPlt.update(df)
+                    myPlt.show_mean()
+                    # combined_plotter.update(df, file_name)
 
         if do_stats:
             for i in stats_data_frames.keys():

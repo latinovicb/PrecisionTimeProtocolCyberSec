@@ -2,31 +2,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from logger import log
 import re
-from class_utils import PlotUtils
+from class_utils import PTPSinglePlotter
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-
-
-class PTPSinglePlotter(PlotUtils):
-    def __init__(self, title, labels_units, location, plot_kwargs):
-        super().__init__(title, labels_units, location, plot_kwargs)
-        self.csv_first_write = True
-        self.fig.suptitle(f"ptp4l parsed data -- {title}")
-
-    def update(self, data):
-        self._PlotUtils__update(data)
-        self.__save_csv(data)
-
-    def __save_csv(self, data):
-        name = f"{self.location.data}{self.title}.csv"
-        if self.csv_first_write:
-            log(f" ... rewriting/creating file {name}")
-            data.to_csv(name, mode="w", header=True)
-            self.csv_first_write = False
-        else:
-            log(f"Data_file UPDATED in {name}")
-            data.to_csv(name, mode="a", header=False)
 
 
 class PtpReader:

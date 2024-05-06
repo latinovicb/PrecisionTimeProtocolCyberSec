@@ -18,4 +18,4 @@ ssh_conns:
 ptp_log_configuration:
   measurment_time: 60  # s
   buff_size: 10
-  log_directory: "/tmp/ptp_reads"  # this computer
+  log_directory: "/mnt/c/Users/bokim/Documents/Linux_data/ptp_reads"  # this computer
