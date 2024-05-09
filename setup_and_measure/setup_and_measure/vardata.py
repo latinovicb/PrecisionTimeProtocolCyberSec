@@ -20,6 +20,11 @@ class LocationThisDevice:
     data: str
     plots: str
     caps: str
+    stats: str
+    hist: str
+    p_delta: str
+    csv: str
+    box: str
 
     def __init__(self, root_dir):
         if root_dir[-1] != "/":
@@ -29,6 +34,10 @@ class LocationThisDevice:
         self.plots = self.root + 'real-time-raw-plots/'
         self.caps = self.root + 'network-caps/'
         self.stats = self.root + 'stats_plots_comparisons/'
+        self.hist = self.stats + 'histograms/'
+        self.p_delta = self.stats + 'packet_time_deltas/'
+        self.csv = self.stats + 'csvs/'
+        self.box = self.stats + 'box/'
 
 
 @dataclass

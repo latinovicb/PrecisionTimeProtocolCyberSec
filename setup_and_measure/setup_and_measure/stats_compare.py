@@ -1,12 +1,15 @@
 import os
 import numpy as np
 import scipy as sci
+import scipy.stats as stats
 from logger import log
 import pandas as pd
-from class_utils import PlotUtils
+from class_utils import PlotUtils, packets_time_delta
 
-stat_names = ["mean", "median", "median - mean", "variance", "standard deviation",
-              "absolute mean deviation", "absolute median deviation"]
+stat_names = ["mean", "median", "mean - median",
+              "abs. mean dev.", "abs. median dev.",
+              "standard dev.", "variance",
+              "spike prob. (Z-score) [\%]", "spike prob. (IQR) [\%]"]
 
 
 class PTPCombinedPlotter(PlotUtils):
@@ -25,18 +28,40 @@ class PTPCombinedPlotter(PlotUtils):
                 list(self.labels_units.keys())[i + 1],
                 list(self.labels_units.values())[i + 1],
             )
-        self._PlotUtils__save_fig(self.location.stats)
+        self._PlotUtils__save_fig(self.location.hist)
 
-    def __plot_hist(self, data, ax, name, unit, line_name=None):
-        ax.title.set_text(name)
-        ax.set(ylabel=unit)
-        ax.hist(data[name], bins=100)
+    def make_box(self, data):
+        for i in range(len(self.labels_units.keys()) - 1):
+            self.__plot_box(
+                data,
+                self.axs[i],
+                list(self.labels_units.keys())[i + 1],
+                list(self.labels_units.values())[i + 1],
+            )
+        self._PlotUtils__save_fig(self.location.box)
 
-        if line_name is not None:
-            ax.legend()
+    def __plot_box(self, data, ax, name, unit, line_name=None):
+        ax.set_ylabel(f"{name} [{unit}]", fontsize=14)
+        ax.set_xlabel("count", labelpad=-5, fontsize=14)
+
+        boxprops = dict(linestyle='-', linewidth=2, color='blue')
+        whiskerprops = dict(linestyle='--', linewidth=2, color='orange')
+        capprops = dict(linestyle='-', linewidth=2, color='green')
+        flierprops = dict(marker='o', markerfacecolor='red',
+                          markersize=12, linestyle='none', markeredgecolor='black')
+        medianprops = dict(linestyle='-', linewidth=2, color='purple')
+
+        ax.boxplot(data[name].dropna(), boxprops=boxprops, whiskerprops=whiskerprops,
+                   capprops=capprops, flierprops=flierprops, medianprops=medianprops,
+                   patch_artist=True)
+
+    def __plot_hist(self, data, ax, name, unit):
+        ax.set_xlabel(f"{name} [{unit}]", fontsize=14)
+        ax.set_ylabel("count", labelpad=-5, fontsize=14)
+        ax.hist(data[name])
 
 
-def stat_maker(data_row, ptp_info, name):
+def stat_maker(data_row, ptp_info, name, unit):
     data_row = data_row[~np.isnan(data_row)]
 
     mean = np.mean(data_row)
@@ -47,14 +72,43 @@ def stat_maker(data_row, ptp_info, name):
     mean_abs_deviation = np.mean(np.absolute(data_row - mean))
     median_abs_deviation = sci.stats.median_abs_deviation(data_row)
 
-    # TODO: finish fft & spectral analysis
+    z_score = stats.zscore(data_row)
+    # data_with_z_scores = list(zip(data_row, z_score))
+    # counter1 = 0
+    # for value, scor in data_with_z_scores:
+    #     if abs(scor) > 3:
+    #         print(counter1, " ", value, " ", scor)
+    #         counter1 += 1
+    is_spike = np.absolute(z_score) > 3
+    spike_percentage_z = (len([i for i in is_spike if i])/len(data_row))*100
+    probability_of_spikes_z = np.mean(is_spike)
+    # assert round(spike_percentage/100, 6) == round(probability_of_spikes, 6)
+
+    Q1 = np.percentile(data_row, 25)
+    Q3 = np.percentile(data_row, 75)
+    IQR = Q3 - Q1
+    iqr_multiplier = 3.5
+    lower_bound = Q1 - iqr_multiplier * IQR
+    upper_bound = Q3 + iqr_multiplier * IQR
+    outliers = data_row[(data_row < lower_bound) | (data_row > upper_bound)]
+    probability_of_spikes_irq = len(outliers) / len(data_row)
+
+    spike_percentage_irq = len(outliers)/len(data_row)*100
+
     # fast_ft = sci.fft.fft(data_row)
     # fft_magnitude = np.abs(fast_ft)
     # slow_ft = sci.signal.stft(data_row) #NOTE: nperseg = 256 is greater than input length
 
+    my_names = [name + f" [{unit}]" for name in stat_names[:-3]]
+    left_ones = stat_names[-3:]
+    left_ones[0] = left_ones[0] + f" [{unit}^2]"
+    # print(my_names + left_ones)
+
     data_series = pd.Series(
-        [mean, median, mean_v_median, variance, standard_deviation,
-            mean_abs_deviation, median_abs_deviation], stat_names, name=name
+        [mean, median, mean_v_median,
+         mean_abs_deviation, median_abs_deviation,
+         standard_deviation, variance,
+         probability_of_spikes_z * 100, probability_of_spikes_irq * 100], my_names + left_ones, name=name
     )
 
     # add median
@@ -71,7 +125,7 @@ class StatMakerComparator:
         self.selected = selected
         self.labels_units = labels_units
 
-    def do(self, ts_type="all", protocol="all", do_stats=False):
+    def do(self, ts_type="all", protocol="all", do_stats=False, do_packets=False):
 
         csv_files = [
             file for file in os.listdir(self.location.data) if file.endswith(".csv")
@@ -81,19 +135,20 @@ class StatMakerComparator:
                 f"No CSV files found in the specified location. {self.location.data}")
             return
         plot_kwargs = {"linestyle": "dashdot"}
-        combined_plotter = PTPCombinedPlotter(
-            f"combined_ts_{ts_type}_{protocol}",
-            self.labels_units.log_data,
-            self.location,
-            plot_kwargs,
-        )
 
         if do_stats:
             stats_data_frames = {}
 
             need_stats = list(self.labels_units.log_data.keys())[1:]
             for stat in need_stats:
-                stats_data_frames[stat] = pd.DataFrame(index=stat_names)
+                stats_data_frames[stat] = pd.DataFrame()
+        else:
+            combined_plotter = PTPCombinedPlotter(
+                f"combined_ts_{ts_type}_{protocol}",
+                self.labels_units.log_data,
+                self.location,
+                plot_kwargs,
+            )
 
         for csv_file in csv_files:
             file_name = csv_file[: csv_file.rfind(".")]
@@ -123,10 +178,11 @@ class StatMakerComparator:
                     first_index + nan_vals_after_stable_servo, len(df))
                 df.loc[first_index:last_index, columns_to_nan] = np.nan
 
+                if do_packets:
+                    packets_time_delta(file_name, self.location,
+                                       nan_vals_after_stable_servo + 20,
+                                       plot_kwargs)
                 if do_stats:
-                    # stat_plots = location.stats + file_name + "_stat_plots"
-                    # if not os.path.exists(stat_plots):
-                    #     os.makedirs(stat_plots)
                     stat_plotter = PTPCombinedPlotter(
                         f"histogram_{file_name}",
                         self.labels_units.log_data,
@@ -134,17 +190,30 @@ class StatMakerComparator:
                         plot_kwargs,
                     )
                     stat_plotter.make_hist(df)
+                    del stat_plotter
+
+                    stat_plotter = PTPCombinedPlotter(
+                        f"box_{file_name}",
+                        self.labels_units.log_data,
+                        self.location,
+                        plot_kwargs,
+                    )
+                    stat_plotter.make_box(df)
+                    del stat_plotter
+
                     for ptp_info in need_stats:
                         data_row = df[ptp_info].to_numpy()
-                        data = stat_maker(data_row, ptp_info, file_name)
+                        data = stat_maker(data_row, ptp_info,
+                                          file_name, self.labels_units.log_data[ptp_info])
                         assert len(data) == len(stat_names)
                         stats_data_frames[ptp_info][data.name] = data
                 else:
+                    # can't be plotted at the same time as histogram due to interactive plotting process issues
                     combined_plotter.update(df, file_name)
 
         if do_stats:
             for i in stats_data_frames.keys():
                 stat_data = stats_data_frames[i]
-                dest = self.location.stats + i + "_statistics_all.csv"
+                dest = self.location.csv + i + f"_statistics_{ts_type}.csv"
                 stat_data.to_csv(dest, mode='w')
                 log(f"Statistics for {i} saved to {dest}")

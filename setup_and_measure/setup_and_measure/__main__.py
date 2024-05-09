@@ -34,15 +34,9 @@ def measure(args):
     assert len(masters) == len(slaves)
     no_peers = len(masters)
 
-    if not os.path.exists(ptp_log_config.location.root):
-        os.makedirs(ptp_log_config.location.root)
-        os.makedirs(ptp_log_config.location.data)
-        os.makedirs(ptp_log_config.location.plots)
-        os.makedirs(ptp_log_config.location.caps)
-        os.makedirs(ptp_log_config.location.stats)
-        log("made ", ptp_log_config.location.root)
-    else:
-        log(ptp_log_config.location.root, " exists")
+    for field in ptp_log_config.location.__dataclass_fields__:
+        dir = getattr(ptp_log_config.location, field)
+        make_dir(dir)
 
     # extra log for master so that generators wouldn't bug -- maybe fix generators later
     for key, value in ptp_sec_cmds.items():
@@ -110,6 +104,12 @@ def measure(args):
                 setup(ssh_master, ssh_slave, scp_master,
                       scp_slave, ptp_sec_cons, remote_dir)
             ###
+            if args.ntp:
+                ptp_config_files.do_ntp(ssh_master, remote_dir)
+
+            if args.packages:
+                files_packages.do(ssh_master, scp_master)
+                files_packages.do(ssh_slave, scp_master)
 
             # each PTP mode must be defined in the vardata.py
             if args.nenc:
@@ -126,13 +126,13 @@ def measure(args):
                     read_ptp.do("no_enc_unicast_l2_hw")
 
             if args.enc:
-                # wireguard.kill()
-                # wireguard.do()
-                # if args.sw:
-                #     read_ptp.do("wg_enc_multicast_udp_sw")
-                #     read_ptp.do("wg_enc_unicast_udp_sw")
-                # wireguard.kill()
-                # assert wireguard.status is False
+                wireguard.kill()
+                wireguard.do()
+                if args.sw:
+                    read_ptp.do("wg_enc_multicast_udp_sw")
+                    read_ptp.do("wg_enc_unicast_udp_sw")
+                wireguard.kill()
+                assert wireguard.status is False
 
                 strongswan_tunl.kill()
                 strongswan_tunl.do()
@@ -173,31 +173,32 @@ def measure(args):
             log("DO STAT")
             stat_comp = stats_compare.StatMakerComparator(
                 ptp_log_config.location, ptp_sec_cmds.keys(), ptp4l_log_match)
-            stat_comp.do()
-            stat_comp.do(do_stats=True)
 
             if args.hw:
+                stat_comp.do(ts_type="hw", do_stats=True)
                 stat_comp.do(ts_type="hw")
                 stat_comp.do(ts_type="hw", protocol="no_enc")
                 stat_comp.do(ts_type="hw", protocol="wg")
                 stat_comp.do(ts_type="hw", protocol="ipsec")
                 stat_comp.do(ts_type="hw", protocol="macsec")
             if args.sw:
+                stat_comp.do(ts_type="sw", do_stats=True)
                 stat_comp.do(ts_type="sw")
                 stat_comp.do(ts_type="sw", protocol="no_enc")
                 stat_comp.do(ts_type="sw", protocol="wg",)
                 stat_comp.do(ts_type="sw", protocol="ipsec")
                 stat_comp.do(ts_type="sw", protocol="macsec")
 
+            stat_comp.do()
+            if args.packets:
+                stat_comp.do(do_packets=True)
+
 
 def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
-    files_packages.do(ssh_master, scp_master)
-    files_packages.do(ssh_slave, scp_master)
     networking.do(ssh_master, interfaces, PHY_INTERFACE, netmask)
     networking.do(ssh_slave, interfaces, PHY_INTERFACE, netmask)
 
     ptp_config_files.do_id_only(ssh_master, ssh_slave, remote_dir)
-    # ptp_config_files.do_ntp(ssh_master, remote_dir)
 
     mac_master = class_utils.SecUtils.get_mac_addr(ssh_master, PHY_INTERFACE)
     ptp_config_files.do_unicast(
@@ -211,8 +212,12 @@ def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
     )  # macsec
 
 
-class CommandTimeout(Exception):
-    pass
+def make_dir(dir_name):
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+        log("made ", dir_name)
+    else:
+        log(dir_name, " exists")
 
 
 # TODO: move this to class_utils
@@ -275,7 +280,7 @@ class MySSHClient(paramiko.SSHClient):
 def main():
     parser = argparse.ArgumentParser(
         prog="analyzer_main",
-        description="TODO",
+        description="Configuration, Measurement and Analysis tool; Specify additional options in confdata.yml",
     )
     parser.add_argument("-a", action="store_true", help="Enable everything")
     parser.add_argument(
@@ -290,19 +295,24 @@ def main():
     )
     parser.add_argument(
         "-nenc", action="store_true", help="Enable measurement with no encryption; \
-                timestamping options must still be specified"
+                Timestamping options must still be specified"
     )
     parser.add_argument(
         "-enc",
         action="store_true", help="Enable measurement with all encryption protocols; \
-            timestamping options must still be specified"
+            Timestamping options must still be specified"
     )
     parser.add_argument("-stat", action="store_true",
                         help="Do statistics and plot comparisons \
-                        (there must be existing data in dir)")
+                        (There must be existing data in dir)")
     parser.add_argument("-mes", action="store_true",
                         help="Do measurment on provided Master & Slave devices")
-
+    parser.add_argument("-packets", action="store_true",
+                        help="Run packet analysis & plotting")
+    parser.add_argument("-ntp", action="store_true",
+                        help="Enable NTP synchronization on Master")
+    parser.add_argument("-pull", action="store_true",
+                        help="Pull and cross-compile nessacary packages")
     args = parser.parse_args()
 
     if args.a:

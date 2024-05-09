@@ -1,6 +1,7 @@
 import re
 from logger import log
 import pandas as pd
+import pyshark
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -142,3 +143,34 @@ class PlotUtils:
         name = f"{location}{self.title}"
         log(f"Figure UPDATED in {name}")
         plt.savefig(name + self.fig_type)
+
+
+def packets_time_delta(name, location, treshold, plot_kwargs):
+    """
+    Does not work for packets encrypted with ESP
+    """
+    cap = pyshark.FileCapture(location.caps + name + ".pcap")
+    dst = location.p_delta + name
+    ptp_timestamps = []
+    for packet in cap:
+        try:
+            if 'PTP' in packet.highest_layer:
+                ptp_timestamps.append(float(packet.sniff_timestamp))
+        except AttributeError:
+            continue
+
+    ptp_timestamps = ptp_timestamps[treshold:]
+    time_deltas = [ptp_timestamps[i] - ptp_timestamps[i-1]
+                   for i in range(1, len(ptp_timestamps))]
+
+    # Plotting the time deltas
+    plt.figure(figsize=(1920 / 100, 1080 / 100), dpi=100)
+    plt.plot(time_deltas, marker='o', markersize=3, **plot_kwargs)
+    plt.xlabel('packet_index', fontsize=14)
+    plt.ylabel('time_delta [s]', fontsize=14)
+    plt.grid(True)
+    plt.tight_layout(pad=5.0, w_pad=1.0, h_pad=1.0)
+    log(f"Figure UPDATED in {dst}")
+    plt.savefig(dst)
+
+    cap.close()
