@@ -107,7 +107,7 @@ def measure(args):
             if args.ntp:
                 ptp_config_files.do_ntp(ssh_master, remote_dir)
 
-            if args.packages:
+            if args.pull:
                 files_packages.do(ssh_master, scp_master)
                 files_packages.do(ssh_slave, scp_master)
 

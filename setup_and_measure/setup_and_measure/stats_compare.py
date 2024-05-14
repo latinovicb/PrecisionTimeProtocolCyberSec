@@ -53,7 +53,7 @@ class PTPCombinedPlotter(PlotUtils):
 
         ax.boxplot(data[name].dropna(), boxprops=boxprops, whiskerprops=whiskerprops,
                    capprops=capprops, flierprops=flierprops, medianprops=medianprops,
-                   patch_artist=True)
+                   patch_artist=True, vert=False)
 
     def __plot_hist(self, data, ax, name, unit):
         ax.set_xlabel(f"{name} [{unit}]", fontsize=14)
