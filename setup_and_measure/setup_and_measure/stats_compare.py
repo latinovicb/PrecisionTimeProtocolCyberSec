@@ -4,61 +4,12 @@ import scipy as sci
 import scipy.stats as stats
 from logger import log
 import pandas as pd
-from class_utils import PlotUtils, packets_time_delta
+from class_utils import PTPCombinedPlotter, packets_time_delta
 
 stat_names = ["mean", "median", "mean - median",
               "abs. mean dev.", "abs. median dev.",
               "standard dev.", "variance",
               "spike prob. (Z-score) [\%]", "spike prob. (IQR) [\%]"]
-
-
-class PTPCombinedPlotter(PlotUtils):
-    def __init__(self, title, labels_units, location, plot_kwargs):
-        super().__init__(title, labels_units, location, plot_kwargs)
-        # self.fig.suptitle(f"ptp4l data -- {title}")
-
-    def update(self, data, line_name):
-        self._PlotUtils__update(data, line_name, self.location.stats)
-
-    def make_hist(self, data):
-        for i in range(len(self.labels_units.keys()) - 1):
-            self.__plot_hist(
-                data,
-                self.axs[i],
-                list(self.labels_units.keys())[i + 1],
-                list(self.labels_units.values())[i + 1],
-            )
-        self._PlotUtils__save_fig(self.location.hist)
-
-    def make_box(self, data):
-        for i in range(len(self.labels_units.keys()) - 1):
-            self.__plot_box(
-                data,
-                self.axs[i],
-                list(self.labels_units.keys())[i + 1],
-                list(self.labels_units.values())[i + 1],
-            )
-        self._PlotUtils__save_fig(self.location.box)
-
-    def __plot_box(self, data, ax, name, unit, line_name=None):
-        ax.set_ylabel(f"{name} [{unit}]", fontsize=14)
-        ax.set_xlabel("count", labelpad=-5, fontsize=14)
-
-        boxprops = dict(linestyle='-', linewidth=2, color='blue')
-        whiskerprops = dict(linestyle='--', linewidth=2, color='orange')
-        capprops = dict(linestyle='-', linewidth=2, color='green')
-        flierprops = dict(marker='o', markerfacecolor='red',
-                          markersize=12, linestyle='none', markeredgecolor='black')
-        medianprops = dict(linestyle='-', linewidth=2, color='purple')
-
-        ax.boxplot(data[name].dropna(), boxprops=boxprops, whiskerprops=whiskerprops,
-                   capprops=capprops, flierprops=flierprops, medianprops=medianprops,
-                   patch_artist=True, vert=False)
-
-    def __plot_hist(self, data, ax, name, unit):
-        ax.set_xlabel(f"{name} [{unit}]", fontsize=14)
-        ax.set_ylabel("count", labelpad=-5, fontsize=14)
-        ax.hist(data[name])
 
 
 def stat_maker(data_row, ptp_info, name, unit):
@@ -110,12 +61,6 @@ def stat_maker(data_row, ptp_info, name, unit):
          standard_deviation, variance,
          probability_of_spikes_z * 100, probability_of_spikes_irq * 100], my_names + left_ones, name=name
     )
-
-    # add median
-    # mean - median
-
-    # numpy short time fft, fft numpy, clustering
-
     return data_series
 
 

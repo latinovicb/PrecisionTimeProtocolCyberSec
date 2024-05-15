@@ -3,10 +3,68 @@ from logger import log
 import pandas as pd
 import pyshark
 import matplotlib
+import paramiko
+import time
 import matplotlib.pyplot as plt
 
 matplotlib.use("agg")
 plt.yscale("symlog")  # symetric log
+
+
+class MySSHClient(paramiko.SSHClient):
+    def __init__(self, addr, user, passw):
+        super().__init__()
+        self.addr = addr
+        # timeout if there is not data comming from stdout -- keep it >10s just to be safe
+        self.stuck_cmd = 10
+        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        self.connect(addr, username=user, password=passw)
+        self.run_command("mount -o remount,rw /")
+
+    def __stderr_check(self, stderr):
+        errors = stderr.read().decode().strip()
+        if errors:
+            log(f"{self.addr} warning/err: {errors}")
+
+    def run_command(self, command, pty=True):
+        """
+        run single command with timeout handler
+        """
+        log(" : ", command)
+
+        try:  # all single execution commands have specific timeout
+            stdin, stdout, stderr = self.exec_command(
+                command, get_pty=pty, timeout=self.stuck_cmd)
+            self.__stderr_check(stderr)
+            return stdout.read().decode().strip()
+        except TimeoutError as e:
+            log("Single exec. timed out ", command)
+            log(e)
+        except paramiko.SSHException as e:
+            log("Single exec. channel timed out ", command)
+            log(e)
+
+    def run_continous(self, command, seconds):
+        """
+        to be used if long outputs are expected - generator with timer
+        """
+        start_time = time.time()
+        try:
+            stdin, stdout, stderr = self.exec_command(
+                command, get_pty=True, timeout=self.stuck_cmd
+            )
+        except TimeoutError as e:
+            log("Continous exec. timed out ", command)
+            log(e)
+        except paramiko.ssh_exception.SSHException as e:
+            log("Continous exec. channel timed out", command)
+            log(e)
+
+        for line in iter(stdout.readline, ""):
+            if time.time() > start_time + seconds:
+                return
+            yield line
 
 
 # Parent util class for security protocols -- private methods are accssed by children using name mangling
@@ -82,8 +140,6 @@ class PlotUtils:
             ax.grid()
 
         self.first_write = True
-        # self.fig.suptitle(f"ptp4l parsed data -- {title}")
-        # plt.rcParams["figure.figsize"] = [12.04, 7.68]
 
         # doing average of averages -- THE LEN OF DATA MUST IS ALWAYS THE SAME
         self.means = {}
@@ -105,9 +161,6 @@ class PlotUtils:
             )
 
         self.__save_fig(location)
-
-    # # to be called just with single row series -- ax position specified explicitely
-    # def __simple_update(self, data, line_name, postiion):
 
     def __plot_next(self, data, ax, name, unit, line_name=None):
         # ax.title.set_text(name)
@@ -143,6 +196,75 @@ class PlotUtils:
         name = f"{location}{self.title}"
         log(f"Figure UPDATED in {name}")
         plt.savefig(name + self.fig_type)
+
+
+class PTPSinglePlotter(PlotUtils):
+    def __init__(self, title, labels_units, location, plot_kwargs):
+        super().__init__(title, labels_units, location, plot_kwargs)
+        self.csv_first_write = True
+
+    def update(self, data):
+        self._PlotUtils__update(data)
+        self.__save_csv(data)
+
+    def __save_csv(self, data):
+        name = f"{self.location.data}{self.title}.csv"
+        if self.csv_first_write:
+            log(f" ... rewriting/creating file {name}")
+            data.to_csv(name, mode="w", header=True)
+            self.csv_first_write = False
+        else:
+            log(f"Data_file UPDATED in {name}")
+            data.to_csv(name, mode="a", header=False)
+
+
+class PTPCombinedPlotter(PlotUtils):
+    def __init__(self, title, labels_units, location, plot_kwargs):
+        super().__init__(title, labels_units, location, plot_kwargs)
+        # self.fig.suptitle(f"ptp4l data -- {title}")
+
+    def update(self, data, line_name):
+        self._PlotUtils__update(data, line_name, self.location.stats)
+
+    def make_hist(self, data):
+        for i in range(len(self.labels_units.keys()) - 1):
+            self.__plot_hist(
+                data,
+                self.axs[i],
+                list(self.labels_units.keys())[i + 1],
+                list(self.labels_units.values())[i + 1],
+            )
+        self._PlotUtils__save_fig(self.location.hist)
+
+    def make_box(self, data):
+        for i in range(len(self.labels_units.keys()) - 1):
+            self.__plot_box(
+                data,
+                self.axs[i],
+                list(self.labels_units.keys())[i + 1],
+                list(self.labels_units.values())[i + 1],
+            )
+        self._PlotUtils__save_fig(self.location.box)
+
+    def __plot_box(self, data, ax, name, unit, line_name=None):
+        ax.set_ylabel(f"{name} [{unit}]", fontsize=14)
+        ax.set_xlabel("count", labelpad=-5, fontsize=14)
+
+        boxprops = dict(linestyle='-', linewidth=2, color='blue')
+        whiskerprops = dict(linestyle='--', linewidth=2, color='orange')
+        capprops = dict(linestyle='-', linewidth=2, color='green')
+        flierprops = dict(marker='o', markerfacecolor='red',
+                          markersize=12, linestyle='none', markeredgecolor='black')
+        medianprops = dict(linestyle='-', linewidth=2, color='purple')
+
+        ax.boxplot(data[name].dropna(), boxprops=boxprops, whiskerprops=whiskerprops,
+                   capprops=capprops, flierprops=flierprops, medianprops=medianprops,
+                   patch_artist=True, vert=False)
+
+    def __plot_hist(self, data, ax, name, unit):
+        ax.set_xlabel(f"{name} [{unit}]", fontsize=14)
+        ax.set_ylabel("count", labelpad=-5, fontsize=14)
+        ax.hist(data[name])
 
 
 def packets_time_delta(name, location, treshold, plot_kwargs):

@@ -9,7 +9,7 @@ def do_unicast(ssh_master, ssh_slave, interfaces, iface, dst_dir, mac):
 
 
 def do_ntp(ssh_master, dst_dir):
-    # only master will need external time source
+    # only master would need external time source
     __ntp_sync_server(ssh_master, dst_dir)
 
 

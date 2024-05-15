@@ -1,7 +1,4 @@
-import paramiko
-import class_utils
 import argparse
-import time
 from logger import log
 import os
 from scp import SCPClient
@@ -11,6 +8,7 @@ import files_packages
 import networking
 import ptp_config_files
 import stats_compare
+from class_utils import SecUtils, MySSHClient
 from vardata import (
     ssh_conns,
     ptp_sec_cons,
@@ -38,7 +36,7 @@ def measure(args):
         dir = getattr(ptp_log_config.location, field)
         make_dir(dir)
 
-    # extra log for master so that generators wouldn't bug -- maybe fix generators later
+    # extra log for master so that generators wouldn't bug
     for key, value in ptp_sec_cmds.items():
         ptp_sec_cmds[key]["master"] += " -l 7"
 
@@ -103,7 +101,7 @@ def measure(args):
             if args_status:
                 setup(ssh_master, ssh_slave, scp_master,
                       scp_slave, ptp_sec_cons, remote_dir)
-            ###
+
             if args.ntp:
                 ptp_config_files.do_ntp(ssh_master, remote_dir)
 
@@ -200,7 +198,7 @@ def setup(ssh_master, ssh_slave, scp_master, scp_slave, interfaces, remote_dir):
 
     ptp_config_files.do_id_only(ssh_master, ssh_slave, remote_dir)
 
-    mac_master = class_utils.SecUtils.get_mac_addr(ssh_master, PHY_INTERFACE)
+    mac_master = SecUtils.get_mac_addr(ssh_master, PHY_INTERFACE)
     ptp_config_files.do_unicast(
         ssh_master, ssh_slave, interfaces, WG_INTERFACE, remote_dir, mac_master
     )  # wg
@@ -218,63 +216,6 @@ def make_dir(dir_name):
         log("made ", dir_name)
     else:
         log(dir_name, " exists")
-
-
-# TODO: move this to class_utils
-class MySSHClient(paramiko.SSHClient):
-    def __init__(self, addr, user, passw):
-        super().__init__()
-        self.addr = addr
-        # timeout if there is not data comming from stdout -- keep it >10s just to be safe
-        self.stuck_cmd = 10
-        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        self.connect(addr, username=user, password=passw)
-        self.run_command("mount -o remount,rw /")
-
-    def __stderr_check(self, stderr):
-        errors = stderr.read().decode().strip()
-        if errors:
-            log(f"{self.addr} warning/err: {errors}")
-
-    def run_command(self, command, pty=True):
-        """
-        run single command with timeout handler
-        """
-        log(" : ", command)
-
-        try:  # all single execution commands have specific timeout
-            stdin, stdout, stderr = self.exec_command(
-                command, get_pty=pty, timeout=self.stuck_cmd)
-            self.__stderr_check(stderr)
-            return stdout.read().decode().strip()
-        except TimeoutError as e:
-            log("Single exec. timed out ", command)
-            log(e)
-        except paramiko.SSHException as e:
-            log("Single exec. channel timed out ", command)
-            log(e)
-
-    def run_continous(self, command, seconds):
-        """
-        to be used if long outputs are expected - generator with timer
-        """
-        start_time = time.time()
-        try:
-            stdin, stdout, stderr = self.exec_command(
-                command, get_pty=True, timeout=self.stuck_cmd
-            )
-        except TimeoutError as e:
-            log("Continous exec. timed out ", command)
-            log(e)
-        except paramiko.ssh_exception.SSHException as e:
-            log("Continous exec. channel timed out", command)
-            log(e)
-
-        for line in iter(stdout.readline, ""):
-            if time.time() > start_time + seconds:
-                return
-            yield line
 
 
 def main():
