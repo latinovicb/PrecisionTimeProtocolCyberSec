@@ -187,7 +187,7 @@ def measure(args):
                 stat_comp.do(ts_type="sw", protocol="ipsec")
                 stat_comp.do(ts_type="sw", protocol="macsec")
 
-            stat_comp.do()
+            # stat_comp.do()
             if args.packets:
                 stat_comp.do(do_packets=True)
 

@@ -11,6 +11,9 @@ stat_names = ["mean", "median", "mean - median",
               "standard dev.", "variance",
               "spike prob. (Z-score) [\%]", "spike prob. (IQR) [\%]"]
 
+iqr_multiplier = 3.5
+z_threshold = 3
+
 
 def stat_maker(data_row, ptp_info, name, unit):
     data_row = data_row[~np.isnan(data_row)]
@@ -30,7 +33,7 @@ def stat_maker(data_row, ptp_info, name, unit):
     #     if abs(scor) > 3:
     #         print(counter1, " ", value, " ", scor)
     #         counter1 += 1
-    is_spike = np.absolute(z_score) > 3
+    is_spike = np.absolute(z_score) > z_threshold
     spike_percentage_z = (len([i for i in is_spike if i])/len(data_row))*100
     probability_of_spikes_z = np.mean(is_spike)
     # assert round(spike_percentage/100, 6) == round(probability_of_spikes, 6)
@@ -38,7 +41,6 @@ def stat_maker(data_row, ptp_info, name, unit):
     Q1 = np.percentile(data_row, 25)
     Q3 = np.percentile(data_row, 75)
     IQR = Q3 - Q1
-    iqr_multiplier = 3.5
     lower_bound = Q1 - iqr_multiplier * IQR
     upper_bound = Q3 + iqr_multiplier * IQR
     outliers = data_row[(data_row < lower_bound) | (data_row > upper_bound)]
@@ -128,9 +130,12 @@ class StatMakerComparator:
                                        nan_vals_after_stable_servo + 20,
                                        plot_kwargs)
                 if do_stats:
+                    no_servo_labels = self.labels_units.log_data.copy()
+                    no_servo_labels.pop('servo')
+
                     stat_plotter = PTPCombinedPlotter(
-                        f"histogram_{file_name}",
-                        self.labels_units.log_data,
+                        f"{file_name}_hist_rice",
+                        no_servo_labels,
                         self.location,
                         plot_kwargs,
                     )
@@ -138,8 +143,8 @@ class StatMakerComparator:
                     del stat_plotter
 
                     stat_plotter = PTPCombinedPlotter(
-                        f"box_{file_name}",
-                        self.labels_units.log_data,
+                        f"{file_name}_iqr_{iqr_multiplier}",
+                        no_servo_labels,
                         self.location,
                         plot_kwargs,
                     )

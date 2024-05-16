@@ -1,10 +1,12 @@
 import re
+import os
 from logger import log
 import pandas as pd
 import pyshark
 import matplotlib
 import paramiko
 import time
+import numpy as np
 import matplotlib.pyplot as plt
 
 matplotlib.use("agg")
@@ -145,8 +147,11 @@ class PlotUtils:
         self.means = {}
         plt.ion()
         # Increase pad to give more space, adjust w_pad and h_pad as needed
-        plt.tight_layout(pad=5.0, w_pad=1.0, h_pad=1.0)
+        plt.tight_layout(pad=5.0, w_pad=1.0, h_pad=2.0)
         plt.yscale("log")
+
+    def __del__(self):
+        plt.close(self.fig)
 
     def __update(self, data, line_name=None, location=None):
         if location is None:
@@ -247,8 +252,8 @@ class PTPCombinedPlotter(PlotUtils):
         self._PlotUtils__save_fig(self.location.box)
 
     def __plot_box(self, data, ax, name, unit, line_name=None):
-        ax.set_ylabel(f"{name} [{unit}]", fontsize=14)
-        ax.set_xlabel("count", labelpad=-5, fontsize=14)
+        ax.set_xlabel(f"{name} [{unit}]", fontsize=14)
+        # ax.set_ylabel("count", labelpad=-5, fontsize=14)
 
         boxprops = dict(linestyle='-', linewidth=2, color='blue')
         whiskerprops = dict(linestyle='--', linewidth=2, color='orange')
@@ -259,24 +264,34 @@ class PTPCombinedPlotter(PlotUtils):
 
         ax.boxplot(data[name].dropna(), boxprops=boxprops, whiskerprops=whiskerprops,
                    capprops=capprops, flierprops=flierprops, medianprops=medianprops,
-                   patch_artist=True, vert=False)
+                   patch_artist=True, vert=False, whis=3.5)
 
     def __plot_hist(self, data, ax, name, unit):
+        bin_size = int(2 * len(data) ** (1/3))  # rice method
         ax.set_xlabel(f"{name} [{unit}]", fontsize=14)
-        ax.set_ylabel("count", labelpad=-5, fontsize=14)
-        ax.hist(data[name])
+        # ax.set_ylabel("count", labelpad=-5, fontsize=14)
+        ax.hist(data[name], bin_size)
 
 
 def packets_time_delta(name, location, treshold, plot_kwargs):
     """
     Does not work for packets encrypted with ESP
     """
-    cap = pyshark.FileCapture(location.caps + name + ".pcap")
+    pcap_file = location.caps + name + ".pcap"
+
+    if os.path.exists(pcap_file):
+        pass
+    else:
+        log("File does not exist ", pcap_file)
+        return
+
+    print(pcap_file)
+    cap = pyshark.FileCapture(pcap_file)
     dst = location.p_delta + name
     ptp_timestamps = []
     for packet in cap:
         try:
-            if 'PTP' in packet.highest_layer:
+            if 'PTP' in packet.highest_layer or 'ESP' in packet.highest_layer:
                 ptp_timestamps.append(float(packet.sniff_timestamp))
         except AttributeError:
             continue
@@ -287,12 +302,15 @@ def packets_time_delta(name, location, treshold, plot_kwargs):
 
     # Plotting the time deltas
     plt.figure(figsize=(1920 / 100, 1080 / 100), dpi=100)
-    plt.plot(time_deltas, marker='o', markersize=3, **plot_kwargs)
+    # plt.plot(time_deltas, marker='o', markersize=3, **plot_kwargs)
+    ptp_timestamps.pop()
+    plt.scatter(ptp_timestamps, time_deltas, s=1, alpha=0.5, color='blue')
     plt.xlabel('packet_index', fontsize=14)
     plt.ylabel('time_delta [s]', fontsize=14)
     plt.grid(True)
     plt.tight_layout(pad=5.0, w_pad=1.0, h_pad=1.0)
     log(f"Figure UPDATED in {dst}")
     plt.savefig(dst)
+    plt.close()
 
     cap.close()
