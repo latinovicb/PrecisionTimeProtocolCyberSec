@@ -6,7 +6,6 @@ import pyshark
 import matplotlib
 import paramiko
 import time
-import numpy as np
 import matplotlib.pyplot as plt
 
 matplotlib.use("agg")

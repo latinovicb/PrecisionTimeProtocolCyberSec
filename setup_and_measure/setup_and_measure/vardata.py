@@ -269,5 +269,4 @@ ptp_sec_cmds = {
         "master": BASE + MACSEC_INTERFACE + L2 + HW + UNICAST_MASTER,
         "slave": BASE + MACSEC_INTERFACE + L2 + HW + SLAVE + UNICAST_SLAVE_MAC,
     },
-    # TODO: consider adding more options
 }

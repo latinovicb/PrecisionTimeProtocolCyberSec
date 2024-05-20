@@ -33,10 +33,10 @@ def stat_maker(data_row, ptp_info, name, unit):
     #     if abs(scor) > 3:
     #         print(counter1, " ", value, " ", scor)
     #         counter1 += 1
+    # assert round(spike_percentage/100, 6) == round(probability_of_spikes, 6)
     is_spike = np.absolute(z_score) > z_threshold
     spike_percentage_z = (len([i for i in is_spike if i])/len(data_row))*100
     probability_of_spikes_z = np.mean(is_spike)
-    # assert round(spike_percentage/100, 6) == round(probability_of_spikes, 6)
 
     Q1 = np.percentile(data_row, 25)
     Q3 = np.percentile(data_row, 75)
@@ -46,16 +46,11 @@ def stat_maker(data_row, ptp_info, name, unit):
     outliers = data_row[(data_row < lower_bound) | (data_row > upper_bound)]
     probability_of_spikes_irq = len(outliers) / len(data_row)
 
-    spike_percentage_irq = len(outliers)/len(data_row)*100
-
-    # fast_ft = sci.fft.fft(data_row)
-    # fft_magnitude = np.abs(fast_ft)
-    # slow_ft = sci.signal.stft(data_row) #NOTE: nperseg = 256 is greater than input length
+    # spike_percentage_irq = len(outliers)/len(data_row)*100
 
     my_names = [name + f" [{unit}]" for name in stat_names[:-3]]
     left_ones = stat_names[-3:]
     left_ones[0] = left_ones[0] + f" [{unit}^2]"
-    # print(my_names + left_ones)
 
     data_series = pd.Series(
         [mean, median, mean_v_median,
